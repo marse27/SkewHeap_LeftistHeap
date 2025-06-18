@@ -229,10 +229,10 @@ Proof.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
   - exact H2.
   - exact H1.
-  - inversion H1 as [| ? ? l3 r3 Hr_le Hl Hr]; subst.
-    apply LeftBiased_make_node; [exact Hl | eapply IHl; eauto].
-  - inversion H2 as [| ? ? l4 r4 Hr_le Hl Hr]; subst.
-    apply LeftBiased_make_node; [exact Hl | eapply IHl; eauto].
+  - inversion H1; subst.
+    apply LeftBiased_make_node; [assumption | now apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2)].
+  - inversion H2; subst.
+    apply LeftBiased_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
 Qed.
 
 
