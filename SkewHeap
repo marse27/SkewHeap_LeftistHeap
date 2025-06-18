@@ -384,18 +384,29 @@ Proof.
   remember (h1, h2) as p eqn:Heqp.
   revert h1 h2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp; simpl; auto.
-  - admit. 
+  - rewrite app_nil_r. reflexivity.
   - simpl in IHh.
    assert (Permutation (to_list (merge (r1, N y l2 r2))) (to_list r1 ++ to_list (N y l2 r2))) as HP.
    { eapply IHh; eauto. }
    simpl in HP.
    constructor. rewrite HP.
-   (* transitivity ((to_list l1 ++ to_list r1 ++ y :: to_list l2 ++ to_list r2)).*)
    rewrite Permutation_app_comm.
    rewrite app_assoc.
    reflexivity.
-  - admit.
-Admitted.
+  - simpl in IHh.
+  assert (Permutation (to_list (merge (r2, N x l1 r1))) (to_list r2 ++ to_list (N x l1 r1))) as Hperm.
+  { eapply IHh; eauto. }
+  simpl in Hperm.
+  rewrite <- Permutation_app_comm.
+  rewrite Hperm.
+  rewrite app_assoc.
+  rewrite <- Permutation_middle.
+  rewrite perm_swap. constructor. 
+  rewrite <- Permutation_middle.
+  constructor.
+  rewrite Permutation_app_comm. 
+  reflexivity.
+Qed.
 
 (*2*)
 Lemma to_list_insert :
