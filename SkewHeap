@@ -30,7 +30,14 @@ Function merge (p : heap * heap) {measure size_skew p} : heap :=
         else N y (merge (r2, fst p)) l2
       end.
 Proof.
-  1-2: intros; cbn; lia.
+  - intros.
+    apply Nat.add_lt_le_mono.
+    + simpl. lia.
+    + apply Nat.le_refl.
+  -  intros.
+     subst p.
+     unfold size_skew; simpl.
+     lia.
 Defined.
 
   (* insertion (merge a singleton) *)
