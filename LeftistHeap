@@ -27,10 +27,10 @@ Fixpoint size (h : LHeap) : nat :=
   | Node _ _ l r => 1 + size l + size r
   end.
 
-Definition fuel (p : LHeap * LHeap) : nat :=
+Definition sizeHeap (p : LHeap * LHeap) : nat :=
   size (fst p) + size (snd p).
 
-Function merge (p : LHeap * LHeap) {measure fuel p} : LHeap :=
+Function merge (p : LHeap * LHeap) {measure sizeHeap p} : LHeap :=
   match p with
   | (Leaf, h2) => h2
   | (h1, Leaf) => h1
@@ -451,12 +451,35 @@ Lemma to_list_merge :
 Proof.
   intros h1 h2.
   remember (h1, h2) as p eqn:Hp.
-  functional induction (merge p) using merge_ind; inversion Hp; subst; clear Hp; simpl.
+  revert h1 h2 Hp.
+  functional induction (merge p) using merge_ind; intros; inversion Hp; subst; clear Hp.
   - reflexivity.
   - rewrite app_nil_r. reflexivity.
-  - rewrite to_list_make_node_perm.
-    admit.
-Admitted.
+  - simpl.
+    rewrite to_list_make_node_perm.
+    assert (Permutation (to_list (merge (r1, Node _x0 x2 l2 r2))) (to_list r1 ++ to_list (Node _x0 x2 l2 r2))) as Hperm.
+  { eapply IHl; eauto. }
+    simpl in Hperm. rewrite <- Permutation_middle. constructor.
+    rewrite Hperm. rewrite app_assoc. reflexivity.
+  - simpl.
+    rewrite to_list_make_node_perm.
+    assert (Permutation (to_list (merge (Node _x x1 l1 r1, r2))) (to_list (Node _x x1 l1 r1) ++ to_list r2)) as Hperm.
+  { eapply IHl; eauto. }
+    simpl in Hperm. rewrite Hperm.
+    rewrite <- Permutation_middle.
+    rewrite <- Permutation_middle. 
+    rewrite perm_swap.
+    constructor. 
+    rewrite <- Permutation_middle. 
+    constructor. 
+    rewrite Permutation_app_comm.
+    repeat rewrite <- app_assoc. 
+    apply Permutation_app_head. 
+    apply Permutation_app_head.
+    rewrite Permutation_app_comm. 
+    reflexivity.
+Qed.
+
 
 Lemma findMin_make_node :
   forall x l r,
