@@ -133,9 +133,22 @@ Proof.
 Qed.
  
 
-Lemma weaken_All (P Q : nat -> Prop) h :
-(forall x, P x -> Q x) -> All P h -> All Q h.
-Proof. Admitted.
+
+Lemma weaken_All (P Q : nat -> Prop) :
+  forall h : heap,
+    (forall x, P x -> Q x) ->
+    All P h -> All Q h.
+Proof.
+  intros h HPQ.
+  induction h as [| x l IHl r IHr]; simpl; intros H.
+  - exact I.
+  - destruct H as [Hx [Hl Hr]].
+    repeat split.
+    + apply HPQ, Hx.
+    + apply IHl, Hl.
+    + apply IHr, Hr.
+Qed.
+
 
 Lemma merge_preserves_heap_order :
   forall h1 h2,
@@ -191,47 +204,6 @@ Proof.
     +  eapply (IHh r2 (N x l1 r1)); eauto. inversion Hh2; subst. apply H0.
     + apply Hh2.
 Qed.
-
-
-Lemma merge_preserves_heap_order :
-  forall h1 h2,
-    heap_order h1 ->
-    heap_order h2 ->
-    heap_order (merge (h1,h2)).
-Proof.
-  intros h1 h2 Hh1 Hh2.
-  remember (h1, h2) as p.
-  revert h1 h2 Hh1 Hh2 Heqp.
-  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
-  - exact Hh2.
-  - exact Hh1.
-  - simpl. simpl in IHh. 
-    repeat split.
-    + apply merge_All.
-      * (* follows from Hh1 *) admit.
-      * simpl. apply Nat.ltb_lt in e0.
-        repeat split.
-        ++ lia.
-        ++ (* use Hh2, e0, weaken_All *) admit.
-        ++ (* use Hh2, e0, weaken_All *) admit.
-    + (* follows from Hh1 *) admit.
-    + eapply (IHh r1 (N y l2 r2)); eauto.
-      admit.
-    + (* follows from Hh1 *) admit.
-  - simpl. simpl in IHh. 
-    repeat split.
-    + apply merge_All.
-      * (* follows from Hh1 *) admit.
-      * simpl. 
-        repeat split.
-        ++ admit.
-        ++ (* use Hh2, e0, weaken_All *) admit.
-        ++ (* use Hh2, e0, weaken_All *) admit.
-    + (* follows from Hh1 *) admit.
-    + eapply IHh; [ | | reflexivity ].
-      1,2: eauto. (* follows from Hh1 *) admit.
-    + (* follows from Hh1 *) admit.
-Admitted.
 
 
 End MergeLemmas.
