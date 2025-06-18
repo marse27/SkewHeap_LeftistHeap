@@ -41,7 +41,16 @@ Function merge (p : LHeap * LHeap) {measure sizeHeap p} : LHeap :=
         make_node x2 l2 (merge (h1, r2))
   end.
 Proof.
-  1-2: intros; cbn; lia.
+  - intros.
+    apply Nat.add_lt_le_mono.
+    + simpl. lia.
+    + apply Nat.le_refl.
+  - intros.
+    subst p.
+    simpl.
+    apply Nat.add_lt_mono_l.
+    simpl.
+    lia.
 Defined.
 
 Definition singleton (x : nat) : LHeap :=
