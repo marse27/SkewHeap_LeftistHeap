@@ -1,0 +1,405 @@
+Set Implicit Arguments.
+Require Import Coq.Program.Wf.
+Require Import Coq.Arith.Arith.
+Require Import Lia.
+Require Import Recdef.
+Module SkewHeapNat.
+
+  (* the skew‐heap type over nat *)
+  Inductive heap : Type :=
+  | E : heap
+  | N : nat -> heap -> heap -> heap. 
+
+  (* size for fuel *)
+  Fixpoint size (h : heap) : nat :=
+    match h with
+    | E        => 0
+    | N _ l r  => S (size l + size r)
+    end.
+
+Definition size_skew (p : heap * heap) : nat :=
+  size (fst p) + size (snd p).
+
+Function merge (p : heap * heap) {measure size_skew p} : heap :=
+      match p with
+      | (E, h)          => h
+      | (h, E)          => h
+      | (N x l1 r1, N y l2 r2) =>
+        if Nat.ltb x y
+        then N x (merge (r1, snd p)) l1
+        else N y (merge (r2, fst p)) l2
+      end.
+Proof.
+  1-2: intros; cbn; lia.
+Defined.
+
+  (* insertion (merge a singleton) *)
+  Definition insert (x : nat) (h : heap) : heap :=
+    merge ((N x E E), h).
+
+  (* get min *)
+  Definition find_min (h : heap) : option nat :=
+    match h with
+    | E       => None
+    | N x _ _ => Some x
+    end.
+
+  (* delete‐min *)
+  Definition delete_min (h : heap) : heap :=
+    match h with
+    | E       => E
+    | N _ l r => merge (l, r)
+    end.
+
+ (*checks whether a given property P holds for every element in the heap*)
+Fixpoint All (P: nat -> Prop) (h: heap) : Prop :=
+    match h with
+    | E        => True
+    | N x l r  => P x /\ All P l /\ All P r
+    end.
+
+ (*each node’s value is less than or equal to all values in its subtrees*)
+Fixpoint heap_order (h : heap) : Prop :=
+  match h with
+  | E => True
+  | N x l r =>
+      All (fun y => x <= y) l /\
+      All (fun y => x <= y) r /\
+      heap_order l /\ heap_order r
+  end.
+
+End SkewHeapNat.
+
+
+(*---------------------------------------------------------*)
+Module MergeLemmas.
+
+Import SkewHeapNat.
+
+Lemma merge_E_l : forall h, merge (E, h) = h.
+Proof.
+  intros h.
+  unfold merge; simpl.
+  reflexivity.
+Qed.
+
+Lemma merge_E_r : forall h, merge (h, E) = h.
+Proof.
+  intros h.
+  destruct h; simpl.
+  - reflexivity.
+  - unfold merge; simpl. reflexivity.
+Qed.
+
+
+Lemma size_Node :
+  forall x l r,
+    size (N x l r) = 1 + size l + size r.
+Proof.
+  intros. simpl. lia.
+Qed.
+
+
+Lemma size_merge :
+  forall h1 h2,
+    size (merge (h1, h2)) = size h1 + size h2.
+Proof.
+  intros. remember (h1, h2) as p. revert h1 h2 Heqp.
+  functional induction merge p; inversion 1.
+  - destruct h2; simpl; reflexivity.
+  - destruct h1; simpl; lia.
+  - rewrite size_Node, (IHh _ _ eq_refl). simpl. lia.
+  - rewrite size_Node, (IHh _ _ eq_refl). simpl. lia.
+Qed.
+
+Lemma merge_preserves_heap_order :
+  forall h1 h2,
+    heap_order h1 ->
+    heap_order h2 ->
+    heap_order (merge (h1,h2)).
+Proof.
+Admitted.
+
+End MergeLemmas.
+
+Module InsertLemmas.
+
+  Import SkewHeapNat.
+  Import MergeLemmas.
+
+  (* First, show that every singleton heap is well‐ordered *)
+Lemma singleton_heap_order (x : nat) :
+  heap_order (N x E E).
+Proof.
+  simpl.
+  repeat split;
+  try constructor.
+Qed.
+
+  (* Inserting preserves the heap‐order invariant *)
+Lemma insert_preserves_heap_order (x : nat) (h : heap) :
+  heap_order h ->
+  heap_order (insert x h).
+Proof.
+  intros Hh.
+  unfold insert.
+  apply merge_preserves_heap_order;
+  [ exact (singleton_heap_order x)
+  | exact Hh ].
+Qed.
+
+End InsertLemmas.
+
+
+Module DeleteLemmas.
+  Import SkewHeapNat.
+  Import MergeLemmas.
+
+Lemma delete_min_preserves_heap_order :
+  forall h,
+    heap_order h ->
+    heap_order (delete_min h).
+Proof.
+  intros h H.
+  unfold delete_min.
+  destruct h as [| x l r].
+  - simpl; constructor.
+  - simpl.
+    destruct H as (_ & _ & Hord_l & Hord_r).
+    now apply merge_preserves_heap_order.
+Qed.
+
+End DeleteLemmas.
+
+
+
+Module MinLemmas.
+  Import SkewHeapNat.
+Require Import Lia.
+
+  (* Compare two optional nats by taking the minimum when both present *)
+Definition min_opt (o1 o2 : option nat) : option nat :=
+  match o1, o2 with
+  | None,  o       => o
+  | o,     None    => o
+  | Some x, Some y => Some (Nat.min x y)
+  end.
+
+
+Lemma find_min_merge (h1 h2 : heap) :
+  find_min (merge (h1, h2)) = min_opt (find_min h1) (find_min h2).
+Proof.
+  remember (h1, h2) as p eqn:Heqp.
+  revert h1 h2 Heqp.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
+  - destruct h2; simpl; reflexivity.
+  - destruct h1; simpl; reflexivity.
+  - simpl. f_equal. apply Nat.ltb_lt in e0.  lia.
+  - simpl. f_equal. apply Nat.ltb_ge in e0. lia.
+Qed.
+
+  (* find_min of an insert compares the new element against the old min *)
+Lemma find_min_insert (x : nat) (h : heap) :
+  find_min (insert x h) = min_opt (Some x) (find_min h).
+Proof.
+  unfold insert; apply find_min_merge.
+Qed.
+
+  (* Characterize when find_min returns None *)
+Lemma find_min_empty_iff (h : heap) :
+  find_min h = None <-> h = E.
+Proof.
+  split;
+  [ destruct h as [| y l r]; simpl; auto; discriminate
+  | intros ->; simpl; reflexivity ].
+Qed.
+
+  (* If the heap is empty then delete_min returns E *)
+Lemma find_min_delete_consistent (h : heap) :
+  find_min h = None -> delete_min h = E.
+Proof.
+  intros H; rewrite find_min_empty_iff in H; now subst.
+Qed.
+
+  (* After deleting the root from a non‐singleton heap, the new min is ≥ old *)
+Lemma find_min_delete_next (h : heap) (m : nat) :
+  heap_order h ->
+  find_min h = Some m ->
+  delete_min h <> E ->
+  exists m', find_min (delete_min h) = Some m' /\ m <= m'.
+Proof.
+  intros Hord Hmin Hne.
+  unfold delete_min in *.
+  destruct h as [| x l r]; simpl in *; try contradiction.
+  inversion Hmin; subst x; clear Hmin.
+  destruct Hord as [Hall_l [Hall_r [Hord_l Hord_r]]].
+  simpl.
+  rewrite find_min_merge.
+  unfold min_opt.
+  destruct (find_min l) as [n1|] eqn:Hl.
+  - destruct (find_min r) as [n2|] eqn:Hr.
+    + exists (Nat.min n1 n2). split.
+      * reflexivity.
+      * destruct l as [| x1 l1 r1]; simpl in Hl; try discriminate.
+        inversion Hl; subst n1.
+        destruct r as [| x2 l2 r2]; simpl in Hr; try discriminate.
+        inversion Hr; subst n2.
+        simpl in Hall_l, Hall_r.
+        destruct Hall_l as [Hle1 _].
+        destruct Hall_r as [Hle2 _].
+        apply Nat.min_glb; assumption.
+    + exists n1. split; [reflexivity|].
+      destruct l as [| x1 l1 r1]; simpl in Hl; try discriminate.
+      inversion Hl; subst n1.
+      simpl in Hall_l.
+      destruct Hall_l as [Hle1 _].
+      exact Hle1.
+  - destruct (find_min r) as [n2|] eqn:Hr.
+    + exists n2. split; [reflexivity|].
+      destruct r as [| x2 l2 r2]; simpl in Hr; try discriminate.
+      inversion Hr; subst n2.
+      simpl in Hall_r.
+      destruct Hall_r as [Hle2 _].
+      exact Hle2.
+    + destruct l, r; simpl in *; inversion Hl; inversion Hr.
+      exfalso. apply Hne. reflexivity.
+Qed.
+
+End MinLemmas.
+
+(*-------------------------------------------------------------------------*)
+
+Require Import Coq.Lists.List.
+Require Import Coq.Sorting.Permutation.
+Require Import Coq.Arith.PeanoNat.
+Require Import Lia.
+Import ListNotations.
+
+Module SkewHeapNat_Permutation.
+  Import SkewHeapNat.
+ Import MinLemmas.
+
+
+  (* flatten the heap to a list *)
+Fixpoint to_list (h : heap) : list nat :=
+  match h with
+  | E        => []
+  | N x l r  => x :: (to_list l ++ to_list r)
+  end.
+
+
+  (* 1. *)
+Lemma to_list_merge :
+    forall h1 h2,
+      Permutation (to_list (merge (h1, h2)))
+                  (to_list h1 ++ to_list h2).
+  Proof.
+  Admitted.
+
+(*2*)
+Lemma to_list_insert :
+  forall x h,
+    Permutation (to_list (insert x h)) (x :: to_list h).
+Proof.
+  intros x h.
+  unfold insert.
+  rewrite to_list_merge.
+  simpl.
+  apply Permutation_refl.
+Qed.
+
+
+  (* From [All P h] we get P for every y in [to_list h] *)
+Lemma All_to_list (P : nat -> Prop) :
+  forall h, All P h -> forall y, In y (to_list h) -> P y.
+Proof.
+  intros h H y Hin.
+  induction h as [| x l r IHl IHr]; simpl in *.
+  - inversion Hin.
+  - destruct H as [Px [Hl Hr]].
+    destruct Hin as [-> | Hin].
+    + exact Px.
+    + apply in_app_or in Hin as [Hinl | Hinr].
+      * apply r; assumption.
+      * apply IHr; assumption.
+Qed.
+
+
+  (* helper: if x is not in l then [remove eq_dec x l] = l *)
+Lemma remove_not_in {A : Type} (eq_dec : forall u v : A, {u = v} + {u <> v}) :
+  forall x l,
+    (forall y, In y l -> y <> x) ->
+    remove eq_dec x l = l.
+Proof.
+  induction l as [|a l IH]; simpl; auto.
+  intros Hnot.
+  destruct (eq_dec a x) as [Heq | Hneq].
+  - subst a. exfalso. apply (Hnot x). left. reflexivity. reflexivity.
+  - destruct (eq_dec x a) as [Heq' | Hneq'].
+    + symmetry in Heq'. contradiction.
+    + simpl. f_equal. apply IH. intros y Hy. apply Hnot. right. exact Hy.
+Qed.
+
+
+Fixpoint strict_heap_order (h : heap) : Prop :=
+  match h with
+  | E => True
+  | N x l r =>
+      All (fun y => x < y) l /\
+      All (fun y => x < y) r /\
+      strict_heap_order l /\
+      strict_heap_order r
+  end.
+
+
+
+  (* 4. Deleting the root removes exactly the first occurrence of the min *)
+Lemma to_list_delete_min :
+  forall h m,
+    strict_heap_order h ->
+    find_min h = Some m ->
+    Permutation (to_list (delete_min h))
+                (remove Nat.eq_dec m (to_list h)).
+Proof.
+  intros h m Hstr Hmin.
+  destruct h as [|x l r]; simpl in Hmin; try discriminate.
+  inversion Hmin; subst m.
+  simpl.
+  rewrite to_list_merge; simpl.
+  destruct Hstr as [Hall_l [Hall_r [_ _]]].
+  assert (Hno : forall y, In y (to_list l ++ to_list r) -> y <> x).
+  {
+    intros y Hy.
+    apply in_app_or in Hy as [Hy_l | Hy_r].
+    - apply (All_to_list (fun z => x < z) l Hall_l y) in Hy_l. lia.
+    - apply (All_to_list (fun z => x < z) r Hall_r y) in Hy_r. lia.
+
+  }
+
+  destruct (Nat.eq_dec x x) as [_ | Hx]; [| contradiction].
+  rewrite (remove_not_in Nat.eq_dec (to_list l ++ to_list r) Hno).
+apply Permutation_refl.
+
+Qed.
+
+
+(*5*)
+Lemma to_list_delete_min_general :
+  forall h,
+    strict_heap_order h ->
+    match find_min h with
+    | None => to_list (delete_min h) = []
+    | Some m => Permutation (to_list (delete_min h)) (remove Nat.eq_dec m (to_list h))
+    end.
+Proof.
+  intros h H.
+  destruct (find_min h) as [m|] eqn:Hmin.
+  - apply to_list_delete_min; assumption.
+  - apply find_min_empty_iff in Hmin.
+    subst h. simpl. reflexivity.
+Qed.
+
+End SkewHeapNat_Permutation.
+
+
+(*why use the library, why use the heap, how to use them*)
