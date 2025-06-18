@@ -152,6 +152,62 @@ Proof.
   - simpl. simpl in IHh. 
     repeat split.
     + apply merge_All.
+      * apply Hh1.
+      * simpl. apply Nat.ltb_lt in e0.
+        repeat split.
+        -- lia.
+        -- apply weaken_All with (P := fun y0 => y <= y0). {
+             intros y0 Hy0. lia.
+           }
+           apply Hh2.
+        -- apply weaken_All with (P := fun y0 => y <= y0). {
+             intros y0 Hy0. lia.
+           }
+           apply Hh2.
+    + apply Hh1.
+    + eapply (IHh r1 (N y l2 r2)); eauto. inversion Hh1; subst. apply H0.
+    + apply Hh1.
+  - simpl. simpl in IHh. 
+    repeat split.
+    + apply merge_All.
+      * apply Hh2.
+      * simpl. 
+        repeat split.
+        -- apply Nat.ltb_ge in e0. lia.
+        -- apply weaken_All with (P := fun y0 => x <= y0). {
+             intros y0 Hy0.
+             assert (y <= x) by (apply Nat.ltb_ge in e0; exact e0).
+             lia.
+           }
+            apply Hh1.
+
+        -- apply weaken_All with (P := fun y0 => x <= y0). {
+             intros y0 Hy0.
+             assert (y <= x) by (apply Nat.ltb_ge in e0; exact e0).
+             lia.
+           }
+           apply Hh1.
+    + apply Hh2.
+    +  eapply (IHh r2 (N x l1 r1)); eauto. inversion Hh2; subst. apply H0.
+    + apply Hh2.
+Qed.
+
+
+Lemma merge_preserves_heap_order :
+  forall h1 h2,
+    heap_order h1 ->
+    heap_order h2 ->
+    heap_order (merge (h1,h2)).
+Proof.
+  intros h1 h2 Hh1 Hh2.
+  remember (h1, h2) as p.
+  revert h1 h2 Hh1 Hh2 Heqp.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
+  - exact Hh2.
+  - exact Hh1.
+  - simpl. simpl in IHh. 
+    repeat split.
+    + apply merge_All.
       * (* follows from Hh1 *) admit.
       * simpl. apply Nat.ltb_lt in e0.
         repeat split.
@@ -162,11 +218,20 @@ Proof.
     + eapply (IHh r1 (N y l2 r2)); eauto.
       admit.
     + (* follows from Hh1 *) admit.
-  - admit.
+  - simpl. simpl in IHh. 
+    repeat split.
+    + apply merge_All.
+      * (* follows from Hh1 *) admit.
+      * simpl. 
+        repeat split.
+        ++ admit.
+        ++ (* use Hh2, e0, weaken_All *) admit.
+        ++ (* use Hh2, e0, weaken_All *) admit.
+    + (* follows from Hh1 *) admit.
+    + eapply IHh; [ | | reflexivity ].
+      1,2: eauto. (* follows from Hh1 *) admit.
+    + (* follows from Hh1 *) admit.
 Admitted.
-
-
-
 
 
 End MergeLemmas.
@@ -342,23 +407,8 @@ Lemma to_list_merge :
     forall h1 h2,
       Permutation (to_list (merge (h1, h2)))
                   (to_list h1 ++ to_list h2).
-Proof.
-  intros h1 h2.
-  remember (h1, h2) as p eqn:Heqp.
-  revert h1 h2 Heqp.
-  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp; simpl; auto.
-  - admit. 
-  - simpl in IHh.
-   assert (Permutation (to_list (merge (r1, N y l2 r2))) (to_list r1 ++ to_list (N y l2 r2))) as HP.
-   { eapply IHh; eauto. }
-   simpl in HP.
-   constructor. rewrite HP.
-   (* transitivity ((to_list l1 ++ to_list r1 ++ y :: to_list l2 ++ to_list r2)).*)
-   rewrite Permutation_app_comm.
-   rewrite app_assoc.
-   reflexivity.
-  - admit.
-Admitted.
+  Proof.
+  Admitted.
 
 (*2*)
 Lemma to_list_insert :
