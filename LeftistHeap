@@ -119,7 +119,10 @@ Lemma isEmpty_make_node :
 Proof.
   intros x l r.
   unfold make_node, isEmpty.
-  destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
+  destruct (Nat.leb (rank l) (rank r)). 
+  simpl.
+  reflexivity.
+  reflexivity.
 Qed.
 
 
@@ -129,10 +132,22 @@ Lemma isEmpty_merge :
 Proof.
   intros. remember (h1, h2) as p.
   functional induction merge p; inversion Heqp; subst; clear Heqp.
-  - destruct h2; cbn; reflexivity.
-  - destruct h1; cbn; reflexivity.
-  - rewrite isEmpty_make_node. cbn. reflexivity.
-  - rewrite isEmpty_make_node. cbn. reflexivity.
+  - destruct h2. 
+    + cbn. 
+      reflexivity.
+    + cbn.
+      reflexivity.
+  - destruct h1.
+    + cbn. 
+      reflexivity.
+    + cbn.
+      reflexivity.
+  - rewrite isEmpty_make_node.
+    cbn. 
+    reflexivity.
+  - rewrite isEmpty_make_node. 
+    cbn.
+    reflexivity.
 Qed.
 
 
@@ -142,7 +157,9 @@ Lemma merge_leaf_r :
 Proof.
   intros h.
   unfold merge.
-  destruct h; simpl; reflexivity.
+  destruct h.
+   + simpl. reflexivity.
+   + simpl. reflexivity.
 Qed.
 
 Lemma merge_leaf_l :
@@ -151,7 +168,9 @@ Lemma merge_leaf_l :
 Proof.
   intros h.
   unfold merge.
-  destruct h; simpl; reflexivity.
+  destruct h.
+   + simpl. reflexivity.
+   + simpl. reflexivity.
 Qed.
 
 
@@ -161,8 +180,11 @@ Lemma size_make_node :
     size (make_node x l r) = 1 + size l + size r.
 Proof.
   intros. unfold make_node.
-  destruct (Nat.leb (rank l) (rank r)); simpl; lia.
+  destruct (Nat.leb (rank l) (rank r)).
+   + simpl. lia.
+   + simpl. lia.
 Qed.
+
 
 Lemma size_merge :
   forall h1 h2,
@@ -172,10 +194,15 @@ Proof.
   functional induction merge p; inversion 1.
   - destruct h2; simpl; reflexivity.
   - destruct h1; simpl. cbn. lia. lia.
-  - rewrite size_make_node, (IHl _ _ eq_refl). cbn. lia.
-  - rewrite size_make_node, (IHl _ _ eq_refl). cbn. lia.
+  - simpl. rewrite size_make_node. simpl. 
+    rewrite IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2).
+     + simpl. lia.
+     + reflexivity.
+  - simpl. rewrite size_make_node. simpl. 
+    rewrite IHl with (h1 := Node _x x1 l1 r1) (h2 := r2).
+     + simpl. lia.
+     + reflexivity.
 Qed.
-
 
 
 Lemma LeftBiased_make_node :
