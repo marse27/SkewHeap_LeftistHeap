@@ -112,13 +112,62 @@ Proof.
   - rewrite size_Node, (IHh _ _ eq_refl). simpl. lia.
 Qed.
 
+
+Lemma merge_All (P : nat -> Prop) h1 h2 :
+   All P h1 -> All P h2 -> All P (merge (h1, h2)).
+Proof.
+  remember (h1, h2) as p. revert h1 h2 Heqp.
+  functional induction (merge p) using merge_ind; intros h1 h2 Heqp; inversion Heqp; subst; clear Heqp; auto.
+  - intros H1 H2. simpl in *.
+    repeat split.
+    + apply H1.
+    + apply (IHh r1 (N y l2 r2)); auto.
+      apply H1.
+    + apply H1.
+  - intros H1 H2. simpl in *.
+    repeat split.
+    + apply H2.
+    + apply (IHh r2 (N x l1 r1)); auto.
+      apply H2.
+    + apply H2.
+Qed.
+ 
+
+Lemma weaken_All (P Q : nat -> Prop) h :
+(forall x, P x -> Q x) -> All P h -> All Q h.
+Proof. Admitted.
+
 Lemma merge_preserves_heap_order :
   forall h1 h2,
     heap_order h1 ->
     heap_order h2 ->
     heap_order (merge (h1,h2)).
 Proof.
+  intros h1 h2 Hh1 Hh2.
+  remember (h1, h2) as p.
+  revert h1 h2 Hh1 Hh2 Heqp.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
+  - exact Hh2.
+  - exact Hh1.
+  - simpl. simpl in IHh. 
+    repeat split.
+    + apply merge_All.
+      * (* follows from Hh1 *) admit.
+      * simpl. apply Nat.ltb_lt in e0.
+        repeat split.
+        ++ lia.
+        ++ (* use Hh2, e0, weaken_All *) admit.
+        ++ (* use Hh2, e0, weaken_All *) admit.
+    + (* follows from Hh1 *) admit.
+    + eapply (IHh r1 (N y l2 r2)); eauto.
+      admit.
+    + (* follows from Hh1 *) admit.
+  - admit.
 Admitted.
+
+
+
+
 
 End MergeLemmas.
 
@@ -293,8 +342,23 @@ Lemma to_list_merge :
     forall h1 h2,
       Permutation (to_list (merge (h1, h2)))
                   (to_list h1 ++ to_list h2).
-  Proof.
-  Admitted.
+Proof.
+  intros h1 h2.
+  remember (h1, h2) as p eqn:Heqp.
+  revert h1 h2 Heqp.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp; simpl; auto.
+  - admit. 
+  - simpl in IHh.
+   assert (Permutation (to_list (merge (r1, N y l2 r2))) (to_list r1 ++ to_list (N y l2 r2))) as HP.
+   { eapply IHh; eauto. }
+   simpl in HP.
+   constructor. rewrite HP.
+   (* transitivity ((to_list l1 ++ to_list r1 ++ y :: to_list l2 ++ to_list r2)).*)
+   rewrite Permutation_app_comm.
+   rewrite app_assoc.
+   reflexivity.
+  - admit.
+Admitted.
 
 (*2*)
 Lemma to_list_insert :
