@@ -1,0 +1,516 @@
+Set Implicit Arguments.
+Require Import Coq.Program.Wf.
+Require Import Coq.Arith.Arith.
+Require Import Lia.
+Require Import Recdef.
+
+Module LeftistHeapNat.
+
+Inductive LHeap : Type :=
+| Leaf : LHeap
+| Node : nat -> nat -> LHeap -> LHeap -> LHeap.
+
+Definition rank (h : LHeap) : nat :=
+  match h with
+  | Leaf => 0
+  | Node r _ _ _ => r
+  end.
+
+Definition make_node (x : nat) (a b : LHeap) : LHeap :=
+  if Nat.leb (rank a) (rank b)
+  then Node (rank a + 1) x b a
+  else Node (rank b + 1) x a b.
+
+Fixpoint size (h : LHeap) : nat :=
+  match h with
+  | Leaf => 0
+  | Node _ _ l r => 1 + size l + size r
+  end.
+
+Definition fuel (p : LHeap * LHeap) : nat :=
+  size (fst p) + size (snd p).
+
+Function merge (p : LHeap * LHeap) {measure fuel p} : LHeap :=
+  match p with
+  | (Leaf, h2) => h2
+  | (h1, Leaf) => h1
+  | (Node _ x1 l1 r1 as h1, Node _ x2 l2 r2 as h2) =>
+      if Nat.leb x1 x2 then
+        make_node x1 l1 (merge (r1, h2))
+      else
+        make_node x2 l2 (merge (h1, r2))
+  end.
+Proof.
+  1-2: intros; cbn; lia.
+Defined.
+
+Definition singleton (x : nat) : LHeap :=
+  Node 1 x Leaf Leaf.
+
+Definition insert (x : nat) (h : LHeap) : LHeap :=
+  merge (singleton x, h).
+
+Definition deleteMin (h : LHeap) : LHeap :=
+  match h with
+  | Leaf => Leaf
+  | Node _ _ l r => merge (l, r)
+  end.
+
+Definition findMin (h : LHeap) : option nat :=
+  match h with
+  | Leaf => None
+  | Node _ x _ _ => Some x
+  end.
+
+Definition extractMin (h : LHeap) : option (nat * LHeap) :=
+  match h with
+  | Leaf => None
+  | Node _ x l r => Some (x, merge (l, r))
+  end.
+
+Inductive LeftBiased : LHeap -> Prop :=
+| LeftBiased_Leaf : LeftBiased Leaf
+| LeftBiased_Node :
+    forall (r : nat) (x : nat) (l r' : LHeap),
+      rank r' <= rank l ->
+      LeftBiased l ->
+      LeftBiased r' ->
+      LeftBiased (Node r x l r').
+
+Inductive Elem (x : nat) : LHeap -> Prop :=
+| Elem_root :
+    forall (r : nat) (l r' : LHeap), Elem x (Node r x l r')
+| Elem_l :
+    forall (r : nat) (v : nat) (l r' : LHeap),
+      Elem x l -> Elem x (Node r v l r')
+| Elem_r :
+    forall (r : nat) (v : nat) (l r' : LHeap),
+      Elem x r' -> Elem x (Node r v l r').
+
+End LeftistHeapNat.
+
+
+(*----------------------------------------------------------------*)
+
+
+Module MergeLemmas.
+
+Import LeftistHeapNat.
+
+(* isEmpty predicate for LHeap *)
+Definition isEmpty (h : LHeap) : bool :=
+  match h with
+  | Leaf => true
+  | _ => false
+  end.
+
+Lemma isEmpty_make_node :
+  forall x l r,
+    isEmpty (make_node x l r) = false.
+Proof.
+  intros x l r.
+  unfold make_node, isEmpty.
+  destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
+Qed.
+
+
+Lemma isEmpty_merge :
+  forall h1 h2,
+    isEmpty (merge (h1, h2)) = andb (isEmpty h1) (isEmpty h2).
+Proof.
+  intros. remember (h1, h2) as p.
+  functional induction merge p; inversion Heqp; subst; clear Heqp.
+  - destruct h2; cbn; reflexivity.
+  - destruct h1; cbn; reflexivity.
+  - rewrite isEmpty_make_node. cbn. reflexivity.
+  - rewrite isEmpty_make_node. cbn. reflexivity.
+Qed.
+
+
+Lemma merge_leaf_r :
+  forall h : LHeap,
+    merge (h, Leaf) = h.
+Proof.
+  intros h.
+  unfold merge.
+  destruct h; simpl; reflexivity.
+Qed.
+
+Lemma merge_leaf_l :
+  forall h : LHeap,
+    merge (Leaf, h) = h.
+Proof.
+  intros h.
+  unfold merge.
+  destruct h; simpl; reflexivity.
+Qed.
+
+
+
+Lemma size_make_node :
+  forall x l r,
+    size (make_node x l r) = 1 + size l + size r.
+Proof.
+  intros. unfold make_node.
+  destruct (Nat.leb (rank l) (rank r)); simpl; lia.
+Qed.
+
+Lemma size_merge :
+  forall h1 h2,
+    size (merge (h1, h2)) = size h1 + size h2.
+Proof.
+  intros. remember (h1, h2) as p. revert h1 h2 Heqp.
+  functional induction merge p; inversion 1.
+  - destruct h2; simpl; reflexivity.
+  - destruct h1; simpl. cbn. lia. lia.
+  - rewrite size_make_node, (IHl _ _ eq_refl). cbn. lia.
+  - rewrite size_make_node, (IHl _ _ eq_refl). cbn. lia.
+Qed.
+
+
+
+Lemma LeftBiased_make_node :
+  forall x l r,
+    LeftBiased l -> LeftBiased r ->
+    LeftBiased (make_node x l r).
+Proof.
+  intros x l r Hl Hr.
+  unfold make_node.
+  destruct (Nat.leb (rank l) (rank r)) eqn:Hleb.
+  - apply Nat.leb_le in Hleb.
+    apply LeftBiased_Node; try assumption; lia.
+  - apply Nat.leb_gt in Hleb.
+    apply LeftBiased_Node; try assumption; lia.
+Qed.
+
+
+Lemma LeftBiased_merge :
+  forall h1 h2,
+    LeftBiased h1 -> LeftBiased h2 -> LeftBiased (merge (h1, h2)).
+Proof.
+  intros h1 h2 H1 H2.
+  remember (h1, h2) as p. revert h1 h2 Heqp H1 H2.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
+  - exact H2.
+  - exact H1.
+  - inversion H1 as [| ? ? l3 r3 Hr_le Hl Hr]; subst.
+    apply LeftBiased_make_node; [exact Hl | eapply IHl; eauto].
+  - inversion H2 as [| ? ? l4 r4 Hr_le Hl Hr]; subst.
+    apply LeftBiased_make_node; [exact Hl | eapply IHl; eauto].
+Qed.
+
+
+Lemma Elem_make_node :
+  forall x v l r,
+    Elem x (make_node v l r) <-> x = v \/ Elem x l \/ Elem x r.
+Proof.
+  intros x v l r.
+  unfold make_node.
+  destruct (Nat.leb (rank l) (rank r)) eqn:Hleb.
+  - split.
+    + intros H. inversion H; subst; auto.
+    + intros [-> | [Hl | Hr]].
+      * apply Elem_root.
+      * apply Elem_r. assumption.
+      * apply Elem_l. assumption.
+  - split.
+    + intros H. inversion H; subst; auto.
+    + intros [-> | [Hl | Hr]].
+      * apply Elem_root.
+      * apply Elem_l. assumption.
+      * apply Elem_r. assumption.
+Qed.
+
+
+
+
+Lemma Elem_Node :
+  forall (n : nat) (x v : nat) (l r : LHeap),
+    Elem x (Node n v l r) <-> x = v \/ Elem x l \/ Elem x r.
+Proof.
+  split.
+  - intros H. inversion H; subst; eauto.
+  - intros [-> | [Hl | Hr]].
+    + apply Elem_root.
+    + apply Elem_l. exact Hl.
+    + apply Elem_r. exact Hr.
+Qed.
+
+Lemma Elem_merge :
+  forall x h1 h2,
+    Elem x (merge (h1, h2)) <-> Elem x h1 \/ Elem x h2.
+Proof.
+  intros until h2. revert x.
+  remember (h1, h2) as p. revert h1 h2 Heqp.
+  functional induction merge p;
+  inversion 1; intro.
+  - firstorder. inversion H.
+  - firstorder. inversion H.
+  - rewrite Elem_make_node, (IHl _ _ eq_refl), !Elem_Node.
+    split; intro H; decompose [or] H; auto 6.
+  - rewrite Elem_make_node, (IHl _ _ eq_refl), !Elem_Node.
+      split; intro H; decompose [or] H; auto 6.
+Qed.
+
+
+End MergeLemmas.
+
+
+Module InsertLemmas.
+Import LeftistHeapNat.
+Import MergeLemmas.
+
+Lemma LeftBiased_singleton :
+  forall x : nat,
+    LeftBiased (singleton x).
+Proof.
+  intros. unfold singleton.
+  apply LeftBiased_Node; try constructor.
+Qed.
+
+Lemma LeftBiased_insert :
+  forall x t,
+    LeftBiased t -> LeftBiased (insert x t).
+Proof.
+  intros. unfold insert.
+  apply LeftBiased_merge; auto.
+  apply LeftBiased_singleton.
+Qed.
+
+Lemma Elem_singleton :
+  forall (x y : nat),
+    Elem x (singleton y) <-> x = y.
+Proof.
+  split.
+    inversion 1; inversion H1. reflexivity.
+    inversion 1. constructor.
+Qed.
+
+Lemma Elem_insert :
+  forall x y h,
+    Elem x (insert y h) <-> x = y \/ Elem x h.
+Proof.
+  intros. unfold insert.
+  rewrite Elem_merge, Elem_singleton.
+  reflexivity.
+Qed.
+
+Lemma size_insert :
+  forall x t,
+    size (insert x t) = 1 + size t.
+Proof.
+  intros. unfold insert.
+  rewrite size_merge.
+  simpl. reflexivity.
+Qed.
+
+End InsertLemmas.
+
+
+Module DeleteLemmas.
+Import LeftistHeapNat.
+Import MergeLemmas.
+
+Lemma LeftBiased_deleteMin :
+  forall h,
+    LeftBiased h -> LeftBiased (deleteMin h).
+Proof.
+  intros h H.
+  unfold deleteMin.
+  destruct h as [| r x l r'].
+  - constructor. 
+  - inversion H; subst.
+    apply LeftBiased_merge; assumption.
+Qed.
+
+
+Lemma Elem_deleteMin :
+  forall x h,
+    Elem x (deleteMin h) <->
+    match h with
+    | Leaf => False
+    | Node _ _ l r => Elem x l \/ Elem x r
+    end.
+Proof.
+  intros x h.
+  destruct h as [| rk val l r'].
+  - simpl. split; intro H; inversion H.
+  - simpl. rewrite Elem_merge. reflexivity.
+Qed.
+
+
+Lemma size_deleteMin :
+  forall h,
+    size (deleteMin h) =
+    match h with
+    | Leaf => 0
+    | Node _ _ l r => size l + size r
+    end.
+Proof.
+  intros h.
+  destruct h as [| rk val l r'].
+  - simpl. reflexivity.
+  - simpl. rewrite size_merge. reflexivity.
+Qed.
+
+End DeleteLemmas.
+
+
+Module MinLemmas.
+Import LeftistHeapNat.
+Import MergeLemmas.
+
+
+Lemma LeftBiased_extractMin :
+  forall (m : nat) (t t' : LHeap),
+    LeftBiased t -> extractMin t = Some (m, t') ->
+    LeftBiased t'.
+Proof.
+  intros m t t' Hbias Hext.
+  destruct t as [| r x l r'].
+  - simpl in Hext. discriminate.
+  - simpl in Hext. inversion Hext; subst.
+    inversion Hbias as [| r0 x0 l0 r0' Hr Hbl Hbr]; subst.
+    apply LeftBiased_merge; assumption.
+Qed.
+
+Lemma Elem_extractMin :
+  forall (m : nat) (t t' : LHeap),
+    extractMin t = Some (m, t') ->
+    Elem m t.
+Proof.
+  intros m t t' Hext.
+  destruct t as [| r x l r']; simpl in Hext.
+  - discriminate.
+  - inversion Hext; subst. constructor.
+Qed.
+
+Lemma size_extractMin :
+  forall (m : nat) (t t' : LHeap),
+    extractMin t = Some (m, t') -> size t = S (size t').
+Proof.
+  intros m t t' Hext.
+  destruct t as [| r x l r']; simpl in Hext.
+  - discriminate.
+  - inversion Hext; subst.
+    simpl. rewrite size_merge. reflexivity.
+Qed.
+
+
+Lemma findMin_correct :
+  forall (v : nat) (n : nat) (l r : LHeap),
+    findMin (Node n v l r) = Some v.
+Proof.
+  intros. simpl. reflexivity.
+Qed.
+
+End MinLemmas.
+
+
+Module PermutationLemmas.
+Import LeftistHeapNat.
+Require Import Coq.Lists.List.
+Require Import Coq.Sorting.Permutation.
+Import ListNotations.
+
+Fixpoint to_list (h : LHeap) : list nat :=
+  match h with
+  | Leaf => []
+  | Node _ x l r => x :: (to_list l ++ to_list r)
+  end.
+
+Lemma cons_app_comm :
+  forall (x : nat) (l1 l2 : list nat),
+    Permutation (x :: l1 ++ l2) (l1 ++ x :: l2).
+Proof.
+  intros x l1 l2.
+  induction l1 as [| y l1' IH].
+  - simpl. reflexivity.
+  - simpl.
+    (* We want: x :: y :: l1' ++ l2  ~  y :: l1' ++ x :: l2 *)
+    apply perm_trans with (y :: x :: l1' ++ l2).
+    + apply perm_swap.
+    + apply Permutation_cons. reflexivity. apply IH.
+Qed.
+
+Lemma to_list_make_node_perm x l r :
+  Permutation
+    (to_list (make_node x l r))
+    (to_list l ++ x :: to_list r).
+Proof.
+  unfold make_node.
+  destruct (Nat.leb (rank l) (rank r)) eqn:H.
+  - simpl. apply Permutation_cons_app. apply Permutation_app_comm.
+  - simpl. apply cons_app_comm.
+Qed.
+
+
+Lemma to_list_merge :
+  forall h1 h2,
+    Permutation (to_list (merge (h1,h2))) (to_list h1 ++ to_list h2).
+Proof.
+  intros h1 h2.
+  remember (h1, h2) as p eqn:Hp.
+  functional induction (merge p) using merge_ind; inversion Hp; subst; clear Hp; simpl.
+  - reflexivity.
+  - rewrite app_nil_r. reflexivity.
+  - rewrite to_list_make_node_perm.
+    admit.
+Admitted.
+
+Lemma findMin_make_node :
+  forall x l r,
+    findMin (make_node x l r) = Some x.
+Proof.
+  intros x l r.
+  unfold findMin, make_node.
+  destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
+Qed.
+
+
+Lemma findMin_merge :
+  forall h1 h2 x,
+    findMin (merge (h1, h2)) = Some x ->
+    findMin h1 = Some x \/ findMin h2 = Some x.
+
+Proof.
+  intros h1 h2 x H.
+  remember (h1, h2) as p eqn:Hp.
+  functional induction (merge p) using merge_ind; inversion Hp; subst; simpl in *.
+  - right. assumption.
+  - left. assumption.
+  - rewrite findMin_make_node in H.
+  inversion H; subst. left; reflexivity.
+  - rewrite findMin_make_node in H.
+  inversion H; subst.
+  right. reflexivity.
+Qed.
+
+Lemma to_list_singleton (x : nat) :
+  to_list (singleton x) = [x].
+Proof. simpl. reflexivity. Qed.
+
+Lemma to_list_insert (x : nat) (h : LHeap) :
+  Permutation (to_list (insert x h)) (x :: to_list h).
+Proof.
+  unfold insert.
+  rewrite to_list_merge.
+  rewrite to_list_singleton.
+  simpl.
+  reflexivity.
+Qed.
+
+Lemma to_list_deleteMin :
+  forall h x,
+    findMin h = Some x ->
+    Permutation (to_list (deleteMin h)) (tl (to_list h)).
+Proof.
+  intros h x Hmin.
+  destruct h as [| r v l r'].
+  - simpl in Hmin. discriminate.
+  - simpl in Hmin. inversion Hmin; subst.
+    simpl. rewrite to_list_merge.
+    reflexivity.
+Qed.
+
+End PermutationLemmas.
