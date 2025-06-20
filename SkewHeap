@@ -75,6 +75,8 @@ Fixpoint heap_order (h : heap) : Prop :=
       heap_order l /\ heap_order r
   end.
 
+Definition singleton (x : nat) : heap := N x E E.
+
 
 Inductive Elem (x : nat) : heap -> Prop :=
 | Elem_root : forall l r, Elem x (N x l r)
@@ -231,19 +233,6 @@ Proof.
     + apply Elem_r. exact Hr.
 Qed.
 
-Lemma Elem_in_N_implies_right :
-  forall x y l r,
-    Elem x (N y l r) ->
-    x <> y ->
-    Elem x r \/ Elem x l.
-Proof.
-  intros x y l r H Hneq.
-  inversion H; subst.
-  - contradiction Hneq. reflexivity.
-  - right. assumption.
-  - left. assumption.
-Qed.
-
 
 
 Lemma Elem_merge :
@@ -353,6 +342,34 @@ Proof.
   | exact Hh ].
 Qed.
 
+Lemma Elem_singleton :
+  forall x y,
+    Elem x (singleton y) <-> x = y.
+Proof.
+  intros x y.
+  unfold singleton. simpl.
+  split.
+  - intros H. inversion H; subst.
+    + reflexivity.
+    + inversion H1.
+    + inversion H1.
+  - intros ->. apply Elem_root.
+Qed.
+
+
+Lemma Elem_insert :
+  forall x y h,
+    Elem x (insert y h) <-> x = y \/ Elem x h.
+Proof.
+  intros x y h.
+  unfold insert.
+  rewrite Elem_merge.
+  split; intro H.
+  - destruct H as [H | H]; [left | right]; try now inversion H; auto. apply H.
+  - destruct H as [-> | H]; [left | right]. constructor; assumption. apply H.
+Qed.
+
+
 End InsertLemmas.
 
 
@@ -373,6 +390,24 @@ Proof.
     destruct H as (_ & _ & Hord_l & Hord_r).
     now apply merge_preserves_heap_order.
 Qed.
+
+Lemma Elem_delete_min :
+  forall x h,
+    Elem x (delete_min h) <->
+    match h with
+    | E => False
+    | N _ l r => Elem x l \/ Elem x r
+    end.
+Proof.
+  intros x h.
+  destruct h as [| y l r].
+  - simpl. split; [intros H; inversion H | intros []].
+  - simpl. rewrite Elem_merge.
+    split.
+    + intros [Hl | Hr]; [left | right]; assumption.
+    + intros [Hl | Hr]; [left | right]; assumption.
+Qed.
+
 
 End DeleteLemmas.
 
