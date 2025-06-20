@@ -58,6 +58,13 @@ Defined.
     | N _ l r => merge (l, r)
     end.
 
+Definition extractMin (h : heap) : option (nat * heap) :=
+  match h with
+  | E => None
+  | N x l r => Some (x, merge (l, r))
+  end.
+
+
  (*checks whether a given property P holds for every element in the heap*)
 Fixpoint All (P: nat -> Prop) (h: heap) : Prop :=
     match h with
@@ -410,6 +417,38 @@ Qed.
 
 
 End DeleteLemmas.
+
+
+
+Module ExtractMinLemmas.
+  Import SkewHeapNat.
+  Import MergeLemmas.
+
+
+Lemma Elem_extractMin :
+  forall (m : nat) (t t' : heap),
+    extractMin t = Some (m, t') ->
+    Elem m t.
+Proof.
+  intros m t t' Hext.
+  destruct t as [| y l r]; simpl in Hext.
+  - discriminate.
+  - destruct l, r; simpl in Hext;
+    try (inversion Hext; subst; constructor);
+    destruct (extractMin h) as [[m1 h1]|] eqn:He1;
+    destruct (extractMin h0) as [[m2 h2]|] eqn:He2;
+    destruct (m1 <? m2) eqn:Hcmp;
+    inversion Hext; subst;
+    try constructor 2; try constructor 3;
+    (* Use IH directly *)
+    apply Elem_extractMin with (t' := h1) in He1; assumption ||
+    apply Elem_extractMin with (t' := h2) in He2; assumption.
+Qed.
+
+
+
+
+End ExtractMinLemmas.
 
 
 
