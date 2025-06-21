@@ -126,13 +126,29 @@ Lemma size_merge :
   forall h1 h2,
     size (merge (h1, h2)) = size h1 + size h2.
 Proof.
+ Proof.
   intros. remember (h1, h2) as p. revert h1 h2 Heqp.
   functional induction merge p; inversion 1.
   - destruct h2; simpl; reflexivity.
-  - destruct h1; simpl; lia.
-  - rewrite size_Node, (IHh _ _ eq_refl). simpl. lia.
-  - rewrite size_Node, (IHh _ _ eq_refl). simpl. lia.
+  - destruct h1; simpl. cbn. lia. lia.
+  - assert (Hmerge := IHh r1 (N y l2 r2) eq_refl).
+    rewrite size_Node.
+    rewrite Hmerge.
+    rewrite size_Node. 
+    rewrite !size_Node in *.
+    lia.
+  - rewrite size_Node.
+    assert (Hmerge := IHh r2 (fst (N x l1 r1, N y l2 r2)) eq_refl).
+    rewrite Hmerge.
+    rewrite size_Node.
+    rewrite !size_Node in *.
+    simpl fst in *.
+    rewrite size_Node.
+    lia.
+
 Qed.
+
+
 
 
 Lemma merge_All (P : nat -> Prop) h1 h2 :
