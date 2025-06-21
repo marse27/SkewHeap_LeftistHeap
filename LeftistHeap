@@ -272,22 +272,26 @@ Proof.
     + apply Elem_r. exact Hr.
 Qed.
 
+
+
 Lemma Elem_merge :
   forall x h1 h2,
     Elem x (merge (h1, h2)) <-> Elem x h1 \/ Elem x h2.
 Proof.
-  intros until h2. revert x.
+  intros x h1 h2.
   remember (h1, h2) as p. revert h1 h2 Heqp.
-  functional induction merge p;
-  inversion 1; intro.
-  - firstorder. inversion H.
-  - firstorder. inversion H.
-  - rewrite Elem_make_node, (IHl _ _ eq_refl), !Elem_Node.
-    split; intro H; decompose [or] H; auto 6.
-  - rewrite Elem_make_node, (IHl _ _ eq_refl), !Elem_Node.
-      split; intro H; decompose [or] H; auto 6.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
+  - simpl. split; intro H; [right | destruct H; [inversion H |]]; assumption.
+  - simpl. split; intro H; [left | destruct H; [|inversion H]]; assumption.
+  - simpl. rewrite Elem_make_node. rewrite Elem_Node.
+    rewrite Elem_Node. rewrite IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2). 
+    + rewrite Elem_Node. tauto.
+    + reflexivity. 
+  - simpl. rewrite Elem_make_node. rewrite Elem_Node.
+    rewrite Elem_Node. rewrite IHl with (h1 := Node _x x1 l1 r1) (h2 := r2). 
+    + rewrite Elem_Node. tauto.
+    + reflexivity. 
 Qed.
-
 
 End MergeLemmas.
 
