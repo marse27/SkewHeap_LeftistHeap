@@ -363,9 +363,20 @@ Proof.
     repeat split.
     + apply heap_order_make_node.
       * exact Hall2_l.
-      * apply weaken_All with (P := fun y => x1 <= y).
+      * apply merge_All. apply weaken_All with (P := fun y => x2 <= y).
         -- intros y0 Hy0. apply Nat.leb_gt in e0. lia.
-        -- destruct Hh1 as [Hall1_l _]. admit.
+        -- assert (All (fun y => x2 <= y) (Node _x x1 l1 r1)) as Hx.
+          {
+            apply All_Node.
+            - apply Nat.leb_gt in e0. lia. (* x2 < x1 => x2 <= x1 *)
+            - destruct Hh1 as [Hroot [Hall_l Hall_r]].
+              apply weaken_All with (P := fun y => x1 <= y); try assumption.
+              intros y Hy. apply Nat.leb_gt in e0. lia. 
+            - destruct Hh1 as [Hroot [Hall_l Hall_r]].
+              apply weaken_All with (P := fun y => x1 <= y); try assumption.
+              intros y Hy. apply Nat.leb_gt in e0. lia.
+          } exact Hx.
+       -- exact Hall2_r.
 
       * exact Hh2_l.
       * assert (heap_order (merge (Node _x x1 l1 r1, r2))) as Hmerged.
@@ -373,7 +384,7 @@ Proof.
           apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2); auto.
         }
         exact Hmerged.
-Admitted.
+Qed.
 
 
 
