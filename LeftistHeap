@@ -282,6 +282,99 @@ Proof.
     apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2); [exact H1 | exact Hr2 | reflexivity].
 Qed.
 
+Lemma heap_order_make_node :
+  forall x l r,
+    All (fun y => x <= y) l ->
+    All (fun y => x <= y) r ->
+    heap_order l ->
+    heap_order r ->
+    heap_order (make_node x l r).
+Proof.
+  intros x l r Hl Hr Hl_ord Hr_ord.
+  unfold make_node.
+  destruct (Nat.leb (rank l) (rank r)); simpl; repeat split; assumption.
+Qed.
+
+Lemma weaken_All (P Q : nat -> Prop) :
+  forall h : LHeap,
+    (forall x, P x -> Q x) ->
+    All P h -> All Q h.
+Proof.
+  intros h HPQ.
+  induction h as [| r x l IHl r' IHr]; simpl; intros H.
+  - exact I.
+  - destruct H as [Hx [Hl Hr]].
+    repeat split.
+    + apply HPQ, Hx.
+    + apply IHl, Hl.
+    + apply IHr, Hr.
+Qed.
+
+Lemma All_Node :
+  forall (P : nat -> Prop) r x l r',
+    P x -> All P l -> All P r' -> All P (Node r x l r').
+Proof.
+  intros P r x l r' Hx Hl Hr.
+  simpl.
+  repeat split; assumption.
+Qed.
+
+Lemma merge_preserves_heap_order :
+  forall h1 h2,
+    heap_order h1 -> heap_order h2 -> heap_order (merge (h1, h2)).
+Proof.
+  intros h1 h2 Hh1 Hh2.
+  remember (h1, h2) as p.
+  revert h1 h2 Hh1 Hh2 Heqp.
+  functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
+  - exact Hh2.
+  - exact Hh1.
+  - simpl. (* x1 <= x2 *)
+    destruct Hh1 as [Hall1_l [Hall1_r [Hh1_l Hh1_r]]].
+    repeat split.
+    + apply heap_order_make_node.
+        -- exact Hall1_l.
+        --  apply weaken_All with (P := fun y : nat => x1 <= y). {
+             intros y0 Hy0. lia.
+           } 
+           apply merge_All.
+            --- exact Hall1_r.
+            --- apply All_Node. 
+              ++ apply Nat.leb_le in e0. exact e0.
+              ++ destruct Hh2 as [Hx2 [Hl2 Hr2]].
+                 apply weaken_All with (P := fun y => x2 <= y).
+                 ---- intros y Hy. apply Nat.leb_le in e0. lia.
+                 ---- exact Hx2.
+
+              ++ apply weaken_All with (P := fun y => x2 <= y).
+                * intros y H. apply Nat.leb_le in e0. lia.
+                * assert (All (fun y => x2 <= y) r2) as Hr2'.
+                  {
+                    destruct Hh2 as [_ Hhr2]. (* We only need the right side *)
+                    apply Hhr2.
+                  }
+                  exact Hr2'.
+        -- exact Hh1_l.
+        -- apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2); auto.
+
+
+  - simpl. (* x2 < x1 *)
+    destruct Hh2 as [Hall2_l [Hall2_r [Hh2_l Hh2_r]]].
+    repeat split.
+    + apply heap_order_make_node.
+      * exact Hall2_l.
+      * apply weaken_All with (P := fun y => x1 <= y).
+        -- intros y0 Hy0. apply Nat.leb_gt in e0. lia.
+        -- destruct Hh1 as [Hall1_l _]. admit.
+
+      * exact Hh2_l.
+      * assert (heap_order (merge (Node _x x1 l1 r1, r2))) as Hmerged.
+        {
+          apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2); auto.
+        }
+        exact Hmerged.
+Admitted.
+
 
 
 Lemma Elem_make_node :
