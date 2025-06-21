@@ -86,6 +86,23 @@ Inductive LeftBiased : LHeap -> Prop :=
       LeftBiased r' ->
       LeftBiased (Node r x l r').
 
+Fixpoint All (P: nat -> Prop) (h: LHeap) : Prop :=
+  match h with
+  | Leaf => True
+  | Node _ x l r => P x /\ All P l /\ All P r
+  end.
+
+
+Fixpoint heap_order (h : LHeap) : Prop :=
+  match h with
+  | Leaf => True
+  | Node _ x l r =>
+      All (fun y => x <= y) l /\
+      All (fun y => x <= y) r /\
+      heap_order l /\ heap_order r
+  end.
+
+
 Inductive Elem (x : nat) : LHeap -> Prop :=
 | Elem_root :
     forall (r : nat) (l r' : LHeap), Elem x (Node r x l r')
@@ -234,6 +251,37 @@ Proof.
   - inversion H2; subst.
     apply LeftBiased_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
 Qed.
+
+Lemma All_make_node :
+  forall P x l r,
+    P x -> All P l -> All P r -> All P (make_node x l r).
+Proof.
+  intros P x l r Hx Hl Hr.
+  unfold make_node.
+  destruct (Nat.leb (rank l) (rank r)); simpl; repeat split; assumption.
+Qed.
+
+
+
+Lemma merge_All (P : nat -> Prop) :
+  forall h1 h2,
+    All P h1 -> All P h2 -> All P (merge (h1, h2)).
+Proof.
+  intros h1 h2 H1 H2.
+  remember (h1, h2) as p eqn:Hp.
+  revert h1 h2 H1 H2 Hp.
+  functional induction (merge p) using merge_ind; intros; inversion Hp; subst; clear Hp.
+  - exact H2.
+  - exact H1.
+  - simpl. destruct H1 as [Hpx1 [Hl1 Hr1]].
+    repeat split.
+    apply All_make_node; auto. 
+    apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2); [exact Hr1 | exact H2 | reflexivity].
+  - simpl. destruct H2 as [Hpx2 [Hl2 Hr2]].
+    repeat split. apply All_make_node; auto.
+    apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2); [exact H1 | exact Hr2 | reflexivity].
+Qed.
+
 
 
 Lemma Elem_make_node :
