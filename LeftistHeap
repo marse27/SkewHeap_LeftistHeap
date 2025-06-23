@@ -452,6 +452,20 @@ Module InsertLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
+Lemma insert_preserves_heap_order :
+  forall x h,
+    heap_order h ->
+    heap_order (insert x h).
+Proof.
+  intros x h Hh.
+  unfold insert.
+  apply merge_preserves_heap_order.
+  - (* Show heap_order for Node 1 x Leaf Leaf *)
+    simpl. repeat split; constructor.
+  - exact Hh.
+Qed.
+
+
 Lemma LeftBiased_singleton :
   forall x : nat,
     LeftBiased (singleton x).
@@ -503,6 +517,22 @@ Module DeleteLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
+Lemma deleteMin_preserves_heap_order :
+  forall h,
+    heap_order h ->
+    heap_order (deleteMin h).
+Proof.
+  intros h Hh.
+  destruct h as [| r x l r'].
+  - (* Case: h = Leaf *)
+    simpl. constructor.
+  - (* Case: h = Node _ x l r' *)
+    simpl.
+    destruct Hh as [Hroot [Hl Hr]].
+    apply merge_preserves_heap_order. apply Hr. apply Hr.
+Qed.
+
+
 Lemma LeftBiased_deleteMin :
   forall h,
     LeftBiased h -> LeftBiased (deleteMin h).
@@ -552,6 +582,21 @@ Module MinLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
+Lemma extractMin_preserves_heap_order :
+  forall h x h',
+    heap_order h ->
+    extractMin h = Some (x, h') ->
+    heap_order h'.
+Proof.
+  intros h x h' Hh Hext.
+  destruct h as [| r x0 l r0].
+  - (* Case: Leaf *) simpl in Hext. discriminate.
+  - (* Case: Node _ x0 l r0 *)
+    simpl in Hext. inversion Hext. subst h'.
+    destruct Hh as [Hroot [Hl Hr]].
+    apply merge_preserves_heap_order. apply Hr. apply Hr.
+Qed.
+
 
 Lemma LeftBiased_extractMin :
   forall (m : nat) (t t' : LHeap),
@@ -597,6 +642,108 @@ Proof.
 Qed.
 
 End MinLemmas.
+
+Module FindMinLemmas.
+Import LeftistHeapNat.
+Import MergeLemmas.
+
+Definition min_opt (o1 o2 : option nat) : option nat :=
+  match o1, o2 with
+  | None,  o       => o
+  | o,     None    => o
+  | Some x, Some y => Some (Nat.min x y)
+  end.
+
+Lemma findMin_make_node :
+  forall x l r,
+    findMin (make_node x l r) = Some x.
+Proof.
+  intros x l r.
+  unfold findMin, make_node.
+  destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
+Qed.
+
+Lemma findMin_merge (h1 h2 : LHeap) :
+    findMin (merge (h1, h2)) = min_opt (findMin h1) (findMin h2).
+Proof.
+  remember (h1, h2) as p eqn:Hp.
+  functional induction (merge p) using merge_ind; inversion Hp; subst; simpl.
+  - (* Case: h1 = Leaf *) reflexivity.
+  - (* Case: h2 = Leaf *) destruct (findMin h1); simpl; reflexivity.
+  - (* Case: x1 < x2, so result is Node x1 ... *) 
+    unfold min_opt.
+    simpl. rewrite findMin_make_node.
+    apply Nat.leb_le in e0.
+    f_equal. lia.
+  - (* Case: x2 <= x1, so result is Node x2 ... *)
+    unfold min_opt.
+    rewrite findMin_make_node.
+    f_equal. 
+    assert (H : Nat.min x1 x2 = x2).
+    {
+      apply Nat.min_r.
+      apply Nat.leb_gt in e0. (* converts (x1 <=? x2) = false into x1 > x2 *)
+      lia.
+    }
+    rewrite H. reflexivity.
+Qed.
+
+Lemma findMin_insert (x : nat) (h : LHeap):
+    findMin (insert x h) = min_opt (Some x) (findMin h).
+Proof.
+  unfold insert.
+  rewrite findMin_merge.
+  simpl. reflexivity.
+Qed.
+
+Lemma findMin_empty_iff (h : LHeap) :
+    findMin h = None <-> h = Leaf.
+Proof.
+  split.
+  - (* -> direction *) destruct h; simpl; auto; discriminate.
+  - (* <- direction *) intros ->. simpl. reflexivity.
+Qed.
+
+Lemma findMin_none_deleteMin_id (h : LHeap):
+    findMin h = None -> deleteMin h = Leaf.
+Proof.
+  intros H.
+  destruct h.
+  - reflexivity.
+  - simpl in H. discriminate.
+Qed.
+
+Lemma find_min_delete_next (h : LHeap) (x : nat) :
+  heap_order h ->
+  findMin h = Some x ->
+  deleteMin h <> Leaf ->
+  exists m', findMin (deleteMin h) = Some m' /\ x <= m'.
+Proof.
+  intros Hord Hmin Hne.
+  destruct h as [| r x' l r']; simpl in *; try contradiction.
+  inversion Hmin; subst; clear Hmin.
+  simpl. unfold deleteMin. simpl.
+  remember (merge (l, r')) as h'.
+  destruct h' as [| r0 m' l' r''].
+  - exfalso. apply Hne. reflexivity.
+  - exists m'. split; [reflexivity|].
+    destruct Hord as [Hall_l [Hall_r [Hord_l Hord_r]]].
+
+    assert (All (fun y => x <= y) (merge (l, r'))) as Hmerge_all.
+    {
+      apply merge_All; assumption.
+    }
+
+    simpl in Hmerge_all. rewrite <- Heqh' in Hmerge_all.
+    destruct Hmerge_all as [Hx_le _].
+    exact Hx_le.
+
+Qed.
+
+
+
+
+End FindMinLemmas.
 
 
 Module PermutationLemmas.
@@ -672,34 +819,6 @@ Proof.
     reflexivity.
 Qed.
 
-
-Lemma findMin_make_node :
-  forall x l r,
-    findMin (make_node x l r) = Some x.
-Proof.
-  intros x l r.
-  unfold findMin, make_node.
-  destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
-Qed.
-
-
-Lemma findMin_merge :
-  forall h1 h2 x,
-    findMin (merge (h1, h2)) = Some x ->
-    findMin h1 = Some x \/ findMin h2 = Some x.
-
-Proof.
-  intros h1 h2 x H.
-  remember (h1, h2) as p eqn:Hp.
-  functional induction (merge p) using merge_ind; inversion Hp; subst; simpl in *.
-  - right. assumption.
-  - left. assumption.
-  - rewrite findMin_make_node in H.
-  inversion H; subst. left; reflexivity.
-  - rewrite findMin_make_node in H.
-  inversion H; subst.
-  right. reflexivity.
-Qed.
 
 Lemma to_list_singleton (x : nat) :
   to_list (singleton x) = [x].
