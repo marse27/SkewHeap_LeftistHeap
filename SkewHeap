@@ -504,18 +504,21 @@ Qed.
 Lemma find_min_empty_iff (h : heap) :
   find_min h = None <-> h = E.
 Proof.
-  split;
-  [ destruct h as [| y l r]; simpl; auto; discriminate
-  | intros ->; simpl; reflexivity ].
+  split.
+  - (* -> direction *) destruct h; simpl; auto; discriminate.
+  - (* <- direction *) intros ->. simpl. reflexivity.
 Qed.
 
   (* If the heap is empty then delete_min returns E *)
 Lemma find_min_delete_consistent (h : heap) :
   find_min h = None -> delete_min h = E.
 Proof.
-  intros H; rewrite find_min_empty_iff in H; now subst.
+  intros H.
+  destruct h.
+  - reflexivity.
+  - simpl in H. discriminate.
 Qed.
-
+ 
   (* After deleting the root from a non‐singleton heap, the new min is ≥ old *)
 Lemma find_min_delete_next (h : heap) (m : nat) :
   heap_order h ->
@@ -718,6 +721,19 @@ Proof.
   - apply to_list_delete_min; assumption.
   - apply find_min_empty_iff in Hmin.
     subst h. simpl. reflexivity.
+Qed.
+
+Lemma to_list_extractMin (x : nat) (h h' : heap) :
+    extractMin h = Some (x, h') ->
+    Permutation (to_list h) (x :: to_list h').
+Proof.
+  intros Hext.
+  destruct h; simpl in Hext.
+  - discriminate.
+  - inversion Hext; subst.
+    simpl.
+    rewrite to_list_merge.
+    reflexivity.
 Qed.
 
 End SkewHeapNat_Permutation.
