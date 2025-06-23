@@ -740,9 +740,6 @@ Proof.
 
 Qed.
 
-
-
-
 End FindMinLemmas.
 
 
@@ -834,17 +831,30 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma to_list_deleteMin :
-  forall h x,
+Lemma to_list_deleteMin (x : nat) (h : LHeap) :
     findMin h = Some x ->
     Permutation (to_list (deleteMin h)) (tl (to_list h)).
 Proof.
-  intros h x Hmin.
+  intros Hmin.
   destruct h as [| r v l r'].
   - simpl in Hmin. discriminate.
   - simpl in Hmin. inversion Hmin; subst.
     simpl. rewrite to_list_merge.
     reflexivity.
 Qed.
+
+Lemma to_list_extractMin (x : nat) (h h' : LHeap) :
+    extractMin h = Some (x, h') ->
+    Permutation (to_list h) (x :: to_list h').
+Proof.
+  intros Hext.
+  destruct h as [| r m l r']; simpl in Hext.
+  - discriminate.
+  - inversion Hext; subst.
+    simpl.
+    rewrite to_list_merge.
+    reflexivity.
+Qed.
+
 
 End PermutationLemmas.
