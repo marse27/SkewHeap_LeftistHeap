@@ -77,14 +77,14 @@ Definition extractMin (h : LHeap) : option (nat * LHeap) :=
   | Node _ x l r => Some (x, merge (l, r))
   end.
 
-Inductive LeftBiased : LHeap -> Prop :=
-| LeftBiased_Leaf : LeftBiased Leaf
-| LeftBiased_Node :
+Inductive Left_balanced : LHeap -> Prop :=
+| Left_balanced_Leaf : Left_balanced Leaf
+| Left_balanced_Node :
     forall (r : nat) (x : nat) (l r' : LHeap),
       rank r' <= rank l ->
-      LeftBiased l ->
-      LeftBiased r' ->
-      LeftBiased (Node r x l r').
+      Left_balanced l ->
+      Left_balanced r' ->
+      Left_balanced (Node r x l r').
 
 Fixpoint All (P: nat -> Prop) (h: LHeap) : Prop :=
   match h with
@@ -222,24 +222,24 @@ Proof.
 Qed.
 
 
-Lemma LeftBiased_make_node :
+Lemma Left_balanced_make_node :
   forall x l r,
-    LeftBiased l -> LeftBiased r ->
-    LeftBiased (make_node x l r).
+    Left_balanced l -> Left_balanced r ->
+    Left_balanced (make_node x l r).
 Proof.
   intros x l r Hl Hr.
   unfold make_node.
   destruct (Nat.leb (rank l) (rank r)) eqn:Hleb.
   - apply Nat.leb_le in Hleb.
-    apply LeftBiased_Node; try assumption; lia.
+    apply Left_balanced_Node; try assumption; lia.
   - apply Nat.leb_gt in Hleb.
-    apply LeftBiased_Node; try assumption; lia.
+    apply Left_balanced_Node; try assumption; lia.
 Qed.
 
 
-Lemma LeftBiased_merge :
+Lemma Left_balanced_merge :
   forall h1 h2,
-    LeftBiased h1 -> LeftBiased h2 -> LeftBiased (merge (h1, h2)).
+    Left_balanced h1 -> Left_balanced h2 -> Left_balanced (merge (h1, h2)).
 Proof.
   intros h1 h2 H1 H2.
   remember (h1, h2) as p. revert h1 h2 Heqp H1 H2.
@@ -247,9 +247,9 @@ Proof.
   - exact H2.
   - exact H1.
   - inversion H1; subst.
-    apply LeftBiased_make_node; [assumption | now apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2)].
+    apply Left_balanced_make_node; [assumption | now apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2)].
   - inversion H2; subst.
-    apply LeftBiased_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
+    apply Left_balanced_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
 Qed.
 
 Lemma All_make_node :
@@ -466,21 +466,21 @@ Proof.
 Qed.
 
 
-Lemma LeftBiased_singleton :
+Lemma Left_balanced_singleton :
   forall x : nat,
-    LeftBiased (singleton x).
+    Left_balanced (singleton x).
 Proof.
   intros. unfold singleton.
-  apply LeftBiased_Node; try constructor.
+  apply Left_balanced_Node; try constructor.
 Qed.
 
-Lemma LeftBiased_insert :
+Lemma Left_balanced_insert :
   forall x t,
-    LeftBiased t -> LeftBiased (insert x t).
+    Left_balanced t -> Left_balanced (insert x t).
 Proof.
   intros. unfold insert.
-  apply LeftBiased_merge; auto.
-  apply LeftBiased_singleton.
+  apply Left_balanced_merge; auto.
+  apply Left_balanced_singleton.
 Qed.
 
 Lemma Elem_singleton :
@@ -533,16 +533,16 @@ Proof.
 Qed.
 
 
-Lemma LeftBiased_deleteMin :
+Lemma Left_balanced_deleteMin :
   forall h,
-    LeftBiased h -> LeftBiased (deleteMin h).
+    Left_balanced h -> Left_balanced (deleteMin h).
 Proof.
   intros h H.
   unfold deleteMin.
   destruct h as [| r x l r'].
   - constructor. 
   - inversion H; subst.
-    apply LeftBiased_merge; assumption.
+    apply Left_balanced_merge; assumption.
 Qed.
 
 
@@ -598,17 +598,17 @@ Proof.
 Qed.
 
 
-Lemma LeftBiased_extractMin :
+Lemma Left_balanced_extractMin :
   forall (m : nat) (t t' : LHeap),
-    LeftBiased t -> extractMin t = Some (m, t') ->
-    LeftBiased t'.
+    Left_balanced t -> extractMin t = Some (m, t') ->
+    Left_balanced t'.
 Proof.
   intros m t t' Hbias Hext.
   destruct t as [| r x l r'].
   - simpl in Hext. discriminate.
   - simpl in Hext. inversion Hext; subst.
     inversion Hbias as [| r0 x0 l0 r0' Hr Hbl Hbr]; subst.
-    apply LeftBiased_merge; assumption.
+    apply Left_balanced_merge; assumption.
 Qed.
 
 Lemma Elem_extractMin :
