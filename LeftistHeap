@@ -329,7 +329,7 @@ Proof.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
   - exact Hh2.
   - exact Hh1.
-  - simpl. (* x1 <= x2 *)
+  - simpl.
     destruct Hh1 as [Hall1_l [Hall1_r [Hh1_l Hh1_r]]].
     repeat split.
     + apply heap_order_make_node.
@@ -350,7 +350,7 @@ Proof.
                 * intros y H. apply Nat.leb_le in e0. lia.
                 * assert (All (fun y => x2 <= y) r2) as Hr2'.
                   {
-                    destruct Hh2 as [_ Hhr2]. (* We only need the right side *)
+                    destruct Hh2 as [_ Hhr2].
                     apply Hhr2.
                   }
                   exact Hr2'.
@@ -368,7 +368,7 @@ Proof.
         -- assert (All (fun y => x2 <= y) (Node _x x1 l1 r1)) as Hx.
           {
             apply All_Node.
-            - apply Nat.leb_gt in e0. lia. (* x2 < x1 => x2 <= x1 *)
+            - apply Nat.leb_gt in e0. lia. 
             - destruct Hh1 as [Hroot [Hall_l Hall_r]].
               apply weaken_All with (P := fun y => x1 <= y); try assumption.
               intros y Hy. apply Nat.leb_gt in e0. lia. 
@@ -460,7 +460,6 @@ Proof.
   intros x h Hh.
   unfold insert.
   apply merge_preserves_heap_order.
-  - (* Show heap_order for Node 1 x Leaf Leaf *)
     simpl. repeat split; constructor.
   - exact Hh.
 Qed.
@@ -524,10 +523,8 @@ Lemma deleteMin_preserves_heap_order :
 Proof.
   intros h Hh.
   destruct h as [| r x l r'].
-  - (* Case: h = Leaf *)
-    simpl. constructor.
-  - (* Case: h = Node _ x l r' *)
-    simpl.
+  - simpl. constructor.
+  - simpl.
     destruct Hh as [Hroot [Hl Hr]].
     apply merge_preserves_heap_order. apply Hr. apply Hr.
 Qed.
@@ -590,9 +587,8 @@ Lemma extractMin_preserves_heap_order :
 Proof.
   intros h x h' Hh Hext.
   destruct h as [| r x0 l r0].
-  - (* Case: Leaf *) simpl in Hext. discriminate.
-  - (* Case: Node _ x0 l r0 *)
-    simpl in Hext. inversion Hext. subst h'.
+  - simpl in Hext. discriminate.
+  - simpl in Hext. inversion Hext. subst h'.
     destruct Hh as [Hroot [Hl Hr]].
     apply merge_preserves_heap_order. apply Hr. apply Hr.
 Qed.
@@ -668,21 +664,19 @@ Lemma findMin_merge (h1 h2 : LHeap) :
 Proof.
   remember (h1, h2) as p eqn:Hp.
   functional induction (merge p) using merge_ind; inversion Hp; subst; simpl.
-  - (* Case: h1 = Leaf *) reflexivity.
-  - (* Case: h2 = Leaf *) destruct (findMin h1); simpl; reflexivity.
-  - (* Case: x1 < x2, so result is Node x1 ... *) 
-    unfold min_opt.
+  - reflexivity.
+  - destruct (findMin h1); simpl; reflexivity.
+  - unfold min_opt.
     simpl. rewrite findMin_make_node.
     apply Nat.leb_le in e0.
     f_equal. lia.
-  - (* Case: x2 <= x1, so result is Node x2 ... *)
-    unfold min_opt.
+  - unfold min_opt.
     rewrite findMin_make_node.
     f_equal. 
     assert (H : Nat.min x1 x2 = x2).
     {
       apply Nat.min_r.
-      apply Nat.leb_gt in e0. (* converts (x1 <=? x2) = false into x1 > x2 *)
+      apply Nat.leb_gt in e0.
       lia.
     }
     rewrite H. reflexivity.
@@ -700,8 +694,8 @@ Lemma findMin_empty_iff (h : LHeap) :
     findMin h = None <-> h = Leaf.
 Proof.
   split.
-  - (* -> direction *) destruct h; simpl; auto; discriminate.
-  - (* <- direction *) intros ->. simpl. reflexivity.
+  - destruct h; simpl; auto; discriminate.
+  - intros ->. simpl. reflexivity.
 Qed.
 
 Lemma findMin_none_deleteMin_id (h : LHeap):
@@ -763,7 +757,6 @@ Proof.
   induction l1 as [| y l1' IH].
   - simpl. reflexivity.
   - simpl.
-    (* We want: x :: y :: l1' ++ l2  ~  y :: l1' ++ x :: l2 *)
     apply perm_trans with (y :: x :: l1' ++ l2).
     + apply perm_swap.
     + apply Permutation_cons. reflexivity. apply IH.
