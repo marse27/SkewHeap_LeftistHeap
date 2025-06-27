@@ -268,11 +268,9 @@ Proof.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
   - simpl. split; intro H; [right | destruct H; [inversion H |]]; assumption.
   - simpl. split; intro H; [left | destruct H; [|inversion H]]; assumption.
-  - (* Case: merge (N x l1 r1, N y l2 r2) with x < y *)
-    simpl.
+  - simpl.
     split; intro H.
-    * (* -> direction *)
-      inversion H; subst.
+    * inversion H; subst.
       + left. constructor.
       + assert (Elem x r1 \/ Elem x (N y l2 r2)) as [Hr | Hr].
       {
@@ -284,56 +282,46 @@ Proof.
         -- right. assumption.
       + left. constructor. assumption.
 
-    * (* <- direction *)
-      destruct H as [H1 | H2].
+    * destruct H as [H1 | H2].
       -- rewrite Elem_Node in H1.
         destruct H1 as [-> | [Hl | Hr]].
-        + constructor. (* Elem_root *)
+        + constructor.
         + apply Elem_r. exact Hl.
         + apply Elem_l. apply IHh with (h1 := r1) (h2 := N y l2 r2). reflexivity. left. exact Hr.
       -- apply Elem_l. apply IHh with (h1 := r1) (h2 := N y l2 r2). reflexivity. right. exact H2.
 
   -  split; intro H.
-    -- (* -> direction *)
-      rewrite Elem_Node in H.
-      destruct H as [-> | [Hl | Hr]].
-      + right. constructor.
-      + assert (Elem x r2 \/ Elem x (fst (N x0 l1 r1, N y l2 r2))) as [Hr | Hf].
-        {
-          apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
-          reflexivity. exact Hl.
-        }
-        --- right. apply Elem_r. exact Hr.
-        --- left. apply Hf.
-      + right. apply Elem_l. exact Hr.
+      -- rewrite Elem_Node in H.
+          destruct H as [-> | [Hl | Hr]].
+          + right. constructor.
+          + assert (Elem x r2 \/ Elem x (fst (N x0 l1 r1, N y l2 r2))) as [Hr | Hf].
+            {
+              apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
+              reflexivity. exact Hl.
+            }
+            --- right. apply Elem_r. exact Hr.
+            --- left. apply Hf.
+          + right. apply Elem_l. exact Hr.
 
-    -- (* <- direction *)
+      -- destruct H as [Hx0 | Hy].
 
-destruct H as [Hx0 | Hy].
+          --- apply Elem_Node.
+            right. left.
+            apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
+            + reflexivity.
+            + right. exact Hx0.
 
---- (* Case: Elem x (N x0 l1 r1) *)
-  apply Elem_Node.
-  right. left.
-  apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
-  + reflexivity.
-  + right. exact Hx0.
+          --- apply Elem_Node. rewrite Elem_Node in Hy.
+            destruct Hy as [Hxy | [Hl2 | Hr2]].
 
---- (* Case: Elem x (N y l2 r2) *)
-  apply Elem_Node. rewrite Elem_Node in Hy.
-  destruct Hy as [Hxy | [Hl2 | Hr2]].
+          * constructor 1. exact Hxy.
 
-* (* x = y *)
-  constructor 1. exact Hxy.
+          * right. right. exact Hl2.
 
-* (* Elem x l2 *)
-  right. right. exact Hl2.
-
-* (* Elem x r2 *)
-  apply Elem_Node. apply Elem_Node. right. left.
-  apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
-  + reflexivity.
-  + left. exact Hr2.
-
+          * apply Elem_Node. apply Elem_Node. right. left.
+            apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
+            + reflexivity.
+            + left. exact Hr2.
 Qed.
 
 
@@ -456,7 +444,6 @@ Proof.
     destruct (m1 <? m2) eqn:Hcmp;
     inversion Hext; subst;
     try constructor 2; try constructor 3;
-    (* Use IH directly *)
     apply Elem_extractMin with (t' := h1) in He1; assumption ||
     apply Elem_extractMin with (t' := h2) in He2; assumption.
 Qed.
@@ -505,8 +492,8 @@ Lemma find_min_empty_iff (h : heap) :
   find_min h = None <-> h = E.
 Proof.
   split.
-  - (* -> direction *) destruct h; simpl; auto; discriminate.
-  - (* <- direction *) intros ->. simpl. reflexivity.
+  - destruct h; simpl; auto; discriminate.
+  - intros ->. simpl. reflexivity.
 Qed.
 
   (* If the heap is empty then delete_min returns E *)
@@ -737,6 +724,3 @@ Proof.
 Qed.
 
 End SkewHeapNat_Permutation.
-
-
-(*why use the library, why use the heap, how to use them*)
