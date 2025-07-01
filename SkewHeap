@@ -694,20 +694,16 @@ apply Permutation_refl.
 Qed.
 
 
-(*5*)
-Lemma to_list_delete_min_general :
-  forall h,
-    strict_heap_order h ->
-    match find_min h with
-    | None => to_list (delete_min h) = []
-    | Some m => Permutation (to_list (delete_min h)) (remove Nat.eq_dec m (to_list h))
-    end.
+Lemma to_list_deleteMin_general (x : nat) (h : SHeap) :
+    find_min h = Some x ->
+    Permutation (to_list (delete_min h)) (tl (to_list h)).
 Proof.
-  intros h H.
-  destruct (find_min h) as [m|] eqn:Hmin.
-  - apply to_list_delete_min; assumption.
-  - apply find_min_empty_iff in Hmin.
-    subst h. simpl. reflexivity.
+  intros Hmin.
+  destruct h as [| r v l r'].
+  - simpl in Hmin. discriminate.
+  - simpl in Hmin. inversion Hmin; subst.
+    simpl. rewrite to_list_merge.
+    reflexivity.
 Qed.
 
 Lemma to_list_extractMin (x : nat) (h h' : SHeap) :
