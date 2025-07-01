@@ -630,18 +630,18 @@ Proof.
 Qed.
 
 
+End MinLemmas.
+
+Module FindMinLemmas.
+Import LeftistHeapNat.
+Import MergeLemmas.
+
 Lemma findMin_correct :
   forall (v : nat) (n : nat) (l r : LHeap),
     findMin (Node n v l r) = Some v.
 Proof.
   intros. simpl. reflexivity.
 Qed.
-
-End MinLemmas.
-
-Module FindMinLemmas.
-Import LeftistHeapNat.
-Import MergeLemmas.
 
 Definition min_opt (o1 o2 : option nat) : option nat :=
   match o1, o2 with
