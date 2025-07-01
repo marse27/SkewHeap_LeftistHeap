@@ -77,14 +77,14 @@ Definition extractMin (h : LHeap) : option (nat * LHeap) :=
   | Node _ x l r => Some (x, merge (l, r))
   end.
 
-Inductive Left_balanced : LHeap -> Prop :=
-| Left_balanced_Leaf : Left_balanced Leaf
-| Left_balanced_Node :
+Inductive Satisfies_leftist : LHeap -> Prop :=
+| Satisfies_leftist_Leaf : Satisfies_leftist Leaf
+| Satisfies_leftist_Node :
     forall (r : nat) (x : nat) (l r' : LHeap),
       rank r' <= rank l ->
-      Left_balanced l ->
-      Left_balanced r' ->
-      Left_balanced (Node r x l r').
+      Satisfies_leftist l ->
+      Satisfies_leftist r' ->
+      Satisfies_leftist (Node r x l r').
 
 Fixpoint All (P: nat -> Prop) (h: LHeap) : Prop :=
   match h with
@@ -222,24 +222,24 @@ Proof.
 Qed.
 
 
-Lemma Left_balanced_make_node :
+Lemma Satisfies_leftist_make_node :
   forall x l r,
-    Left_balanced l -> Left_balanced r ->
-    Left_balanced (make_node x l r).
+    Satisfies_leftist l -> Satisfies_leftist r ->
+    Satisfies_leftist (make_node x l r).
 Proof.
   intros x l r Hl Hr.
   unfold make_node.
   destruct (Nat.leb (rank l) (rank r)) eqn:Hleb.
   - apply Nat.leb_le in Hleb.
-    apply Left_balanced_Node; try assumption; lia.
+    apply Satisfies_leftist_Node; try assumption; lia.
   - apply Nat.leb_gt in Hleb.
-    apply Left_balanced_Node; try assumption; lia.
+    apply Satisfies_leftist_Node; try assumption; lia.
 Qed.
 
 
-Lemma Left_balanced_merge :
+Lemma Satisfies_leftist_merge :
   forall h1 h2,
-    Left_balanced h1 -> Left_balanced h2 -> Left_balanced (merge (h1, h2)).
+    Satisfies_leftist h1 -> Satisfies_leftist h2 -> Satisfies_leftist (merge (h1, h2)).
 Proof.
   intros h1 h2 H1 H2.
   remember (h1, h2) as p. revert h1 h2 Heqp H1 H2.
@@ -247,9 +247,9 @@ Proof.
   - exact H2.
   - exact H1.
   - inversion H1; subst.
-    apply Left_balanced_make_node; [assumption | now apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2)].
+    apply Satisfies_leftist_make_node; [assumption | now apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2)].
   - inversion H2; subst.
-    apply Left_balanced_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
+    apply Satisfies_leftist_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
 Qed.
 
 Lemma All_make_node :
@@ -465,21 +465,21 @@ Proof.
 Qed.
 
 
-Lemma Left_balanced_singleton :
+Lemma Satisfies_leftist_singleton :
   forall x : nat,
-    Left_balanced (singleton x).
+    Satisfies_leftist (singleton x).
 Proof.
   intros. unfold singleton.
-  apply Left_balanced_Node; try constructor.
+  apply Satisfies_leftist_Node; try constructor.
 Qed.
 
-Lemma Left_balanced_insert :
+Lemma Satisfies_leftist_insert :
   forall x t,
-    Left_balanced t -> Left_balanced (insert x t).
+    Satisfies_leftist t -> Satisfies_leftist (insert x t).
 Proof.
   intros. unfold insert.
-  apply Left_balanced_merge; auto.
-  apply Left_balanced_singleton.
+  apply Satisfies_leftist_merge; auto.
+  apply Satisfies_leftist_singleton.
 Qed.
 
 Lemma Elem_singleton :
@@ -530,16 +530,16 @@ Proof.
 Qed.
 
 
-Lemma Left_balanced_deleteMin :
+Lemma Satisfies_leftist_deleteMin :
   forall h,
-    Left_balanced h -> Left_balanced (deleteMin h).
+    Satisfies_leftist h -> Satisfies_leftist (deleteMin h).
 Proof.
   intros h H.
   unfold deleteMin.
   destruct h as [| r x l r'].
   - constructor. 
   - inversion H; subst.
-    apply Left_balanced_merge; assumption.
+    apply Satisfies_leftist_merge; assumption.
 Qed.
 
 
@@ -594,17 +594,17 @@ Proof.
 Qed.
 
 
-Lemma Left_balanced_extractMin :
+Lemma Satisfies_leftist_extractMin :
   forall (m : nat) (t t' : LHeap),
-    Left_balanced t -> extractMin t = Some (m, t') ->
-    Left_balanced t'.
+    Satisfies_leftist t -> extractMin t = Some (m, t') ->
+    Satisfies_leftist t'.
 Proof.
   intros m t t' Hbias Hext.
   destruct t as [| r x l r'].
   - simpl in Hext. discriminate.
   - simpl in Hext. inversion Hext; subst.
     inversion Hbias as [| r0 x0 l0 r0' Hr Hbl Hbr]; subst.
-    apply Left_balanced_merge; assumption.
+    apply Satisfies_leftist_merge; assumption.
 Qed.
 
 Lemma Elem_extractMin :
