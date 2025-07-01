@@ -6,21 +6,21 @@ Require Import Recdef.
 Module SkewHeapNat.
 
   (* the skew‐heap type over nat *)
-  Inductive heap : Type :=
-  | E : heap
-  | N : nat -> heap -> heap -> heap. 
+Inductive SHeap : Type :=
+| E : SHeap
+| N : nat -> SHeap -> SHeap -> SHeap. 
 
   (* size for fuel *)
-  Fixpoint size (h : heap) : nat :=
-    match h with
-    | E        => 0
-    | N _ l r  => S (size l + size r)
-    end.
+Fixpoint size (h : SHeap) : nat :=
+  match h with
+  | E        => 0
+  | N _ l r  => S (size l + size r)
+  end.
 
-Definition size_skew (p : heap * heap) : nat :=
+Definition size_skew (p : SHeap * SHeap) : nat :=
   size (fst p) + size (snd p).
 
-Function merge (p : heap * heap) {measure size_skew p} : heap :=
+Function merge (p : SHeap * SHeap) {measure size_skew p} : SHeap :=
       match p with
       | (E, h)          => h
       | (h, E)          => h
@@ -41,24 +41,24 @@ Proof.
 Defined.
 
   (* insertion (merge a singleton) *)
-  Definition insert (x : nat) (h : heap) : heap :=
+  Definition insert (x : nat) (h : SHeap) : SHeap :=
     merge ((N x E E), h).
 
   (* get min *)
-  Definition find_min (h : heap) : option nat :=
+  Definition find_min (h : SHeap) : option nat :=
     match h with
     | E       => None
     | N x _ _ => Some x
     end.
 
   (* delete‐min *)
-  Definition delete_min (h : heap) : heap :=
+  Definition delete_min (h : SHeap) : SHeap :=
     match h with
     | E       => E
     | N _ l r => merge (l, r)
     end.
 
-Definition extractMin (h : heap) : option (nat * heap) :=
+Definition extractMin (h : SHeap) : option (nat * SHeap) :=
   match h with
   | E => None
   | N x l r => Some (x, merge (l, r))
@@ -66,14 +66,14 @@ Definition extractMin (h : heap) : option (nat * heap) :=
 
 
  (*checks whether a given property P holds for every element in the heap*)
-Fixpoint All (P: nat -> Prop) (h: heap) : Prop :=
+Fixpoint All (P: nat -> Prop) (h: SHeap) : Prop :=
     match h with
     | E        => True
     | N x l r  => P x /\ All P l /\ All P r
     end.
 
  (*each node’s value is less than or equal to all values in its subtrees*)
-Fixpoint heap_order (h : heap) : Prop :=
+Fixpoint heap_order (h : SHeap) : Prop :=
   match h with
   | E => True
   | N x l r =>
@@ -82,10 +82,10 @@ Fixpoint heap_order (h : heap) : Prop :=
       heap_order l /\ heap_order r
   end.
 
-Definition singleton (x : nat) : heap := N x E E.
+Definition singleton (x : nat) : SHeap := N x E E.
 
 
-Inductive Elem (x : nat) : heap -> Prop :=
+Inductive Elem (x : nat) : SHeap -> Prop :=
 | Elem_root : forall l r, Elem x (N x l r)
 | Elem_l    : forall y l r, Elem x l -> Elem x (N y l r)
 | Elem_r    : forall y l r, Elem x r -> Elem x (N y l r).
@@ -131,14 +131,14 @@ Proof.
   functional induction merge p; inversion 1.
   - destruct h2; simpl; reflexivity.
   - destruct h1; simpl. cbn. lia. lia.
-  - assert (Hmerge := IHh r1 (N y l2 r2) eq_refl).
+  - assert (Hmerge := IHs r1 (N y l2 r2) eq_refl).
     rewrite size_Node.
     rewrite Hmerge.
     rewrite size_Node. 
     rewrite !size_Node in *.
     lia.
   - rewrite size_Node.
-    assert (Hmerge := IHh r2 (fst (N x l1 r1, N y l2 r2)) eq_refl).
+    assert (Hmerge := IHs r2 (fst (N x l1 r1, N y l2 r2)) eq_refl).
     rewrite Hmerge.
     rewrite size_Node.
     rewrite !size_Node in *.
@@ -159,13 +159,13 @@ Proof.
   - intros H1 H2. simpl in *.
     repeat split.
     + apply H1.
-    + apply (IHh r1 (N y l2 r2)); auto.
+    + apply (IHs r1 (N y l2 r2)); auto.
       apply H1.
     + apply H1.
   - intros H1 H2. simpl in *.
     repeat split.
     + apply H2.
-    + apply (IHh r2 (N x l1 r1)); auto.
+    + apply (IHs r2 (N x l1 r1)); auto.
       apply H2.
     + apply H2.
 Qed.
@@ -173,7 +173,7 @@ Qed.
 
 
 Lemma weaken_All (P Q : nat -> Prop) :
-  forall h : heap,
+  forall h : SHeap,
     (forall x, P x -> Q x) ->
     All P h -> All Q h.
 Proof.
@@ -200,7 +200,7 @@ Proof.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
   - exact Hh2.
   - exact Hh1.
-  - simpl. simpl in IHh. 
+  - simpl. simpl in IHs. 
     repeat split.
     + apply merge_All.
       * apply Hh1.
@@ -216,9 +216,9 @@ Proof.
            }
            apply Hh2.
     + apply Hh1.
-    + eapply (IHh r1 (N y l2 r2)); eauto. inversion Hh1; subst. apply H0.
+    + eapply (IHs r1 (N y l2 r2)); eauto. inversion Hh1; subst. apply H0.
     + apply Hh1.
-  - simpl. simpl in IHh. 
+  - simpl. simpl in IHs. 
     repeat split.
     + apply merge_All.
       * apply Hh2.
@@ -239,7 +239,7 @@ Proof.
            }
            apply Hh1.
     + apply Hh2.
-    +  eapply (IHh r2 (N x l1 r1)); eauto. inversion Hh2; subst. apply H0.
+    +  eapply (IHs r2 (N x l1 r1)); eauto. inversion Hh2; subst. apply H0.
     + apply Hh2.
 Qed.
 
@@ -274,7 +274,7 @@ Proof.
       + left. constructor.
       + assert (Elem x r1 \/ Elem x (N y l2 r2)) as [Hr | Hr].
       {
-        apply IHh with (h1 := r1) (h2 := N y l2 r2).
+        apply IHs with (h1 := r1) (h2 := N y l2 r2).
         reflexivity.
         exact H1.
       }
@@ -287,8 +287,8 @@ Proof.
         destruct H1 as [-> | [Hl | Hr]].
         + constructor.
         + apply Elem_r. exact Hl.
-        + apply Elem_l. apply IHh with (h1 := r1) (h2 := N y l2 r2). reflexivity. left. exact Hr.
-      -- apply Elem_l. apply IHh with (h1 := r1) (h2 := N y l2 r2). reflexivity. right. exact H2.
+        + apply Elem_l. apply IHs with (h1 := r1) (h2 := N y l2 r2). reflexivity. left. exact Hr.
+      -- apply Elem_l. apply IHs with (h1 := r1) (h2 := N y l2 r2). reflexivity. right. exact H2.
 
   -  split; intro H.
       -- rewrite Elem_Node in H.
@@ -296,7 +296,7 @@ Proof.
           + right. constructor.
           + assert (Elem x r2 \/ Elem x (fst (N x0 l1 r1, N y l2 r2))) as [Hr | Hf].
             {
-              apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
+              apply IHs with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
               reflexivity. exact Hl.
             }
             --- right. apply Elem_r. exact Hr.
@@ -307,7 +307,7 @@ Proof.
 
           --- apply Elem_Node.
             right. left.
-            apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
+            apply IHs with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
             + reflexivity.
             + right. exact Hx0.
 
@@ -319,7 +319,7 @@ Proof.
           * right. right. exact Hl2.
 
           * apply Elem_Node. apply Elem_Node. right. left.
-            apply IHh with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
+            apply IHs with (h1 := r2) (h2 := fst (N x0 l1 r1, N y l2 r2)).
             + reflexivity.
             + left. exact Hr2.
 Qed.
@@ -342,7 +342,7 @@ Proof.
 Qed.
 
   (* Inserting preserves the heap‐order invariant *)
-Lemma insert_preserves_heap_order (x : nat) (h : heap) :
+Lemma insert_preserves_heap_order (x : nat) (h : SHeap) :
   heap_order h ->
   heap_order (insert x h).
 Proof.
@@ -430,7 +430,7 @@ Module ExtractMinLemmas.
 
 
 Lemma Elem_extractMin :
-  forall (m : nat) (t t' : heap),
+  forall (m : nat) (t t' : SHeap),
     extractMin t = Some (m, t') ->
     Elem m t.
 Proof.
@@ -468,7 +468,7 @@ Definition min_opt (o1 o2 : option nat) : option nat :=
   end.
 
 
-Lemma find_min_merge (h1 h2 : heap) :
+Lemma find_min_merge (h1 h2 : SHeap) :
   find_min (merge (h1, h2)) = min_opt (find_min h1) (find_min h2).
 Proof.
   remember (h1, h2) as p eqn:Heqp.
@@ -481,14 +481,14 @@ Proof.
 Qed.
 
   (* find_min of an insert compares the new element against the old min *)
-Lemma find_min_insert (x : nat) (h : heap) :
+Lemma find_min_insert (x : nat) (h : SHeap) :
   find_min (insert x h) = min_opt (Some x) (find_min h).
 Proof.
   unfold insert; apply find_min_merge.
 Qed.
 
   (* Characterize when find_min returns None *)
-Lemma find_min_empty_iff (h : heap) :
+Lemma find_min_empty_iff (h : SHeap) :
   find_min h = None <-> h = E.
 Proof.
   split.
@@ -497,7 +497,7 @@ Proof.
 Qed.
 
   (* If the heap is empty then delete_min returns E *)
-Lemma find_min_delete_consistent (h : heap) :
+Lemma find_min_delete_consistent (h : SHeap) :
   find_min h = None -> delete_min h = E.
 Proof.
   intros H.
@@ -507,7 +507,7 @@ Proof.
 Qed.
  
   (* After deleting the root from a non‐singleton heap, the new min is ≥ old *)
-Lemma find_min_delete_next (h : heap) (m : nat) :
+Lemma find_min_delete_next (h : SHeap) (m : nat) :
   heap_order h ->
   find_min h = Some m ->
   delete_min h <> E ->
@@ -566,7 +566,7 @@ Module SkewHeapNat_Permutation.
 
 
   (* flatten the heap to a list *)
-Fixpoint to_list (h : heap) : list nat :=
+Fixpoint to_list (h : SHeap) : list nat :=
   match h with
   | E        => []
   | N x l r  => x :: (to_list l ++ to_list r)
@@ -584,17 +584,17 @@ Proof.
   revert h1 h2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp; simpl; auto.
   - rewrite app_nil_r. reflexivity.
-  - simpl in IHh.
+  - simpl in IHs.
    assert (Permutation (to_list (merge (r1, N y l2 r2))) (to_list r1 ++ to_list (N y l2 r2))) as HP.
-   { eapply IHh; eauto. }
+   { eapply IHs; eauto. }
    simpl in HP.
    constructor. rewrite HP.
    rewrite Permutation_app_comm.
    rewrite app_assoc.
    reflexivity.
-  - simpl in IHh.
+  - simpl in IHs.
   assert (Permutation (to_list (merge (r2, N x l1 r1))) (to_list r2 ++ to_list (N x l1 r1))) as Hperm.
-  { eapply IHh; eauto. }
+  { eapply IHs; eauto. }
   simpl in Hperm.
   rewrite <- Permutation_app_comm.
   rewrite Hperm.
@@ -652,7 +652,7 @@ Proof.
 Qed.
 
 
-Fixpoint strict_heap_order (h : heap) : Prop :=
+Fixpoint strict_heap_order (h : SHeap) : Prop :=
   match h with
   | E => True
   | N x l r =>
@@ -710,7 +710,7 @@ Proof.
     subst h. simpl. reflexivity.
 Qed.
 
-Lemma to_list_extractMin (x : nat) (h h' : heap) :
+Lemma to_list_extractMin (x : nat) (h h' : SHeap) :
     extractMin h = Some (x, h') ->
     Permutation (to_list h) (x :: to_list h').
 Proof.
