@@ -98,36 +98,33 @@ Module MergeLemmas.
 
 Import SkewHeapNat.
 
-Lemma merge_E_l : forall h, merge (E, h) = h.
+Lemma merge_E_l (h : SHeap) : 
+  merge (E, h) = h.
 Proof.
-  intros h.
   unfold merge; simpl.
   reflexivity.
 Qed.
 
-Lemma merge_E_r : forall h, merge (h, E) = h.
+Lemma merge_E_r (h : SHeap): 
+  merge (h, E) = h.
 Proof.
-  intros h.
   destruct h; simpl.
   - reflexivity.
   - unfold merge; simpl. reflexivity.
 Qed.
 
 
-Lemma size_Node :
-  forall x l r,
+Lemma size_Node (x : nat) (l r : SHeap):
     size (N x l r) = 1 + size l + size r.
 Proof.
-  intros. simpl. lia.
+  simpl. lia.
 Qed.
 
 
-Lemma size_merge :
-  forall h1 h2,
+Lemma size_merge (h1 h2 : SHeap):
     size (merge (h1, h2)) = size h1 + size h2.
 Proof.
- Proof.
-  intros. remember (h1, h2) as p. revert h1 h2 Heqp.
+  remember (h1, h2) as p. revert h1 h2 Heqp.
   functional induction merge p; inversion 1.
   - destruct h2; simpl; reflexivity.
   - destruct h1; simpl. cbn. lia. lia.
@@ -145,13 +142,12 @@ Proof.
     simpl fst in *.
     rewrite size_Node.
     lia.
-
 Qed.
 
 
 
 
-Lemma merge_All (P : nat -> Prop) h1 h2 :
+Lemma merge_All (P : nat -> Prop) (h1 h2 : SHeap):
    All P h1 -> All P h2 -> All P (merge (h1, h2)).
 Proof.
   remember (h1, h2) as p. revert h1 h2 Heqp.
@@ -172,12 +168,11 @@ Qed.
  
 
 
-Lemma weaken_All (P Q : nat -> Prop) :
-  forall h : SHeap,
+Lemma weaken_All (P Q : nat -> Prop) (h : SHeap) :
     (forall x, P x -> Q x) ->
     All P h -> All Q h.
 Proof.
-  intros h HPQ.
+  intros HPQ.
   induction h as [| x l IHl r IHr]; simpl; intros H.
   - exact I.
   - destruct H as [Hx [Hl Hr]].
@@ -188,13 +183,12 @@ Proof.
 Qed.
 
 
-Lemma merge_preserves_heap_order :
-  forall h1 h2,
+Lemma merge_preserves_heap_order (h1 h2 : SHeap):
     heap_order h1 ->
     heap_order h2 ->
     heap_order (merge (h1,h2)).
 Proof.
-  intros h1 h2 Hh1 Hh2.
+  intros Hh1 Hh2.
   remember (h1, h2) as p.
   revert h1 h2 Hh1 Hh2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
@@ -244,11 +238,10 @@ Proof.
 Qed.
 
 
-Lemma Elem_Node :
-  forall x y l r,
+Lemma Elem_Node (x y : nat) (l r : SHeap):
     Elem x (N y l r) <-> x = y \/ Elem x l \/ Elem x r.
 Proof.
-  intros x y l r. split.
+  split.
   - intros H. inversion H; subst; auto.
   - intros [Heq | [Hl | Hr]].
     + subst. apply Elem_root.
@@ -258,11 +251,9 @@ Qed.
 
 
 
-Lemma Elem_merge :
-  forall x h1 h2,
+Lemma Elem_merge (x : nat) (h1 h2 : SHeap):
     Elem x (merge (h1, h2)) <-> Elem x h1 \/ Elem x h2.
 Proof.
-  intros x h1 h2.
   remember (h1, h2) as p eqn:Heqp.
   revert h1 h2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
@@ -353,11 +344,9 @@ Proof.
   | exact Hh ].
 Qed.
 
-Lemma Elem_singleton :
-  forall x y,
+Lemma Elem_singleton (x y : nat):
     Elem x (singleton y) <-> x = y.
 Proof.
-  intros x y.
   unfold singleton. simpl.
   split.
   - intros H. inversion H; subst.
@@ -368,11 +357,9 @@ Proof.
 Qed.
 
 
-Lemma Elem_insert :
-  forall x y h,
+Lemma Elem_insert (x y : nat) (h : SHeap):
     Elem x (insert y h) <-> x = y \/ Elem x h.
 Proof.
-  intros x y h.
   unfold insert.
   rewrite Elem_merge.
   split; intro H.
@@ -388,12 +375,11 @@ Module DeleteLemmas.
   Import SkewHeapNat.
   Import MergeLemmas.
 
-Lemma delete_min_preserves_heap_order :
-  forall h,
+Lemma delete_min_preserves_heap_order (h : SHeap):
     heap_order h ->
     heap_order (delete_min h).
 Proof.
-  intros h H.
+  intros H.
   unfold delete_min.
   destruct h as [| x l r].
   - simpl; constructor.
@@ -402,15 +388,13 @@ Proof.
     now apply merge_preserves_heap_order.
 Qed.
 
-Lemma Elem_delete_min :
-  forall x h,
+Lemma Elem_delete_min (x : nat) (h : SHeap):
     Elem x (delete_min h) <->
     match h with
     | E => False
     | N _ l r => Elem x l \/ Elem x r
     end.
 Proof.
-  intros x h.
   destruct h as [| y l r].
   - simpl. split; [intros H; inversion H | intros []].
   - simpl. rewrite Elem_merge.
@@ -429,13 +413,12 @@ Module ExtractMinLemmas.
   Import MergeLemmas.
 
 
-Lemma Elem_extractMin :
-  forall (m : nat) (t t' : SHeap),
-    extractMin t = Some (m, t') ->
-    Elem m t.
+Lemma Elem_extractMin (x : nat) (h h' : SHeap):
+    extractMin h = Some (x, h') ->
+    Elem x h.
 Proof.
-  intros m t t' Hext.
-  destruct t as [| y l r]; simpl in Hext.
+  intros Hext.
+  destruct h as [| y l r]; simpl in Hext.
   - discriminate.
   - destruct l, r; simpl in Hext;
     try (inversion Hext; subst; constructor);
@@ -574,12 +557,10 @@ Fixpoint to_list (h : SHeap) : list nat :=
 
 
   (* 1. *)
-Lemma to_list_merge :
-    forall h1 h2,
+Lemma to_list_merge (h1 h2 : SHeap):
       Permutation (to_list (merge (h1, h2)))
                   (to_list h1 ++ to_list h2).
 Proof.
-  intros h1 h2.
   remember (h1, h2) as p eqn:Heqp.
   revert h1 h2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp; simpl; auto.
@@ -608,11 +589,9 @@ Proof.
 Qed.
 
 (*2*)
-Lemma to_list_insert :
-  forall x h,
+Lemma to_list_insert (x : nat) (h : SHeap):
     Permutation (to_list (insert x h)) (x :: to_list h).
 Proof.
-  intros x h.
   unfold insert.
   rewrite to_list_merge.
   simpl.
@@ -621,10 +600,10 @@ Qed.
 
 
   (* From [All P h] we get P for every y in [to_list h] *)
-Lemma All_to_list (P : nat -> Prop) :
-  forall h, All P h -> forall y, In y (to_list h) -> P y.
+Lemma All_to_list (P : nat -> Prop) (h : SHeap):
+  All P h -> forall y, In y (to_list h) -> P y.
 Proof.
-  intros h H y Hin.
+  intros H y Hin.
   induction h as [| x l r IHl IHr]; simpl in *.
   - inversion Hin.
   - destruct H as [Px [Hl Hr]].
@@ -665,32 +644,30 @@ Fixpoint strict_heap_order (h : SHeap) : Prop :=
 
 
   (* 4. Deleting the root removes exactly the first occurrence of the min *)
-Lemma to_list_delete_min :
-  forall h m,
+Lemma to_list_delete_min (x : nat) (h : SHeap):
     strict_heap_order h ->
-    find_min h = Some m ->
+    find_min h = Some x ->
     Permutation (to_list (delete_min h))
-                (remove Nat.eq_dec m (to_list h)).
+                (remove Nat.eq_dec x (to_list h)).
 Proof.
-  intros h m Hstr Hmin.
-  destruct h as [|x l r]; simpl in Hmin; try discriminate.
-  inversion Hmin; subst m.
+  intros Hstr Hmin.
+  destruct h as [|x' l r]; simpl in Hmin; try discriminate.
+  inversion Hmin; subst x.
   simpl.
   rewrite to_list_merge; simpl.
   destruct Hstr as [Hall_l [Hall_r [_ _]]].
-  assert (Hno : forall y, In y (to_list l ++ to_list r) -> y <> x).
+  assert (Hno : forall y, In y (to_list l ++ to_list r) -> y <> x').
   {
     intros y Hy.
     apply in_app_or in Hy as [Hy_l | Hy_r].
-    - apply (All_to_list (fun z => x < z) l Hall_l y) in Hy_l. lia.
-    - apply (All_to_list (fun z => x < z) r Hall_r y) in Hy_r. lia.
+    - apply (All_to_list (fun z => x' < z) l Hall_l y) in Hy_l. lia.
+    - apply (All_to_list (fun z => x' < z) r Hall_r y) in Hy_r. lia.
 
   }
 
-  destruct (Nat.eq_dec x x) as [_ | Hx]; [| contradiction].
+  destruct (Nat.eq_dec x' x') as [_ | Hx]; [| contradiction].
   rewrite (remove_not_in Nat.eq_dec (to_list l ++ to_list r) Hno).
-apply Permutation_refl.
-
+  apply Permutation_refl.
 Qed.
 
 
