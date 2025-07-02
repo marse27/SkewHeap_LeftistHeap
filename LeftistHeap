@@ -57,7 +57,7 @@ Definition singleton (x : nat) : LHeap :=
   Node 1 x Leaf Leaf.
 
 Definition insert (x : nat) (h : LHeap) : LHeap :=
-  merge (singleton x, h).
+  merge ((Node 1 x Leaf Leaf), h).
 
 Definition deleteMin (h : LHeap) : LHeap :=
   match h with
@@ -495,9 +495,12 @@ Lemma Elem_insert :
   forall x y h,
     Elem x (insert y h) <-> x = y \/ Elem x h.
 Proof.
-  intros. unfold insert.
-  rewrite Elem_merge, Elem_singleton.
-  reflexivity.
+  intros x y h.
+  unfold insert.
+  rewrite Elem_merge.
+  split; intro H.
+  - destruct H as [H | H]; [left | right]; try now inversion H; auto. apply H.
+  - destruct H as [-> | H]; [left | right]. constructor; assumption. apply H.
 Qed.
 
 Lemma size_insert :
@@ -819,9 +822,8 @@ Lemma to_list_insert (x : nat) (h : LHeap) :
 Proof.
   unfold insert.
   rewrite to_list_merge.
-  rewrite to_list_singleton.
   simpl.
-  reflexivity.
+  apply Permutation_refl.
 Qed.
 
 Lemma to_list_deleteMin (x : nat) (h : LHeap) :
