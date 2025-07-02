@@ -113,6 +113,13 @@ Inductive Elem (x : nat) : LHeap -> Prop :=
     forall (r : nat) (v : nat) (l r' : LHeap),
       Elem x r' -> Elem x (Node r v l r').
 
+(* isEmpty predicate for LHeap *)
+Definition isEmpty (h : LHeap) : bool :=
+  match h with
+  | Leaf => true
+  | _ => false
+  end.
+
 End LeftistHeapNat.
 
 
@@ -123,18 +130,9 @@ Module MergeLemmas.
 
 Import LeftistHeapNat.
 
-(* isEmpty predicate for LHeap *)
-Definition isEmpty (h : LHeap) : bool :=
-  match h with
-  | Leaf => true
-  | _ => false
-  end.
-
-Lemma isEmpty_make_node :
-  forall x l r,
+Lemma isEmpty_make_node (x : nat) (l r : LHeap):
     isEmpty (make_node x l r) = false.
 Proof.
-  intros x l r.
   unfold make_node, isEmpty.
   destruct (Nat.leb (rank l) (rank r)). 
   simpl.
@@ -143,11 +141,10 @@ Proof.
 Qed.
 
 
-Lemma isEmpty_merge :
-  forall h1 h2,
+Lemma isEmpty_merge (h1 h2 : LHeap):
     isEmpty (merge (h1, h2)) = andb (isEmpty h1) (isEmpty h2).
 Proof.
-  intros. remember (h1, h2) as p.
+  remember (h1, h2) as p.
   functional induction merge p; inversion Heqp; subst; clear Heqp.
   - destruct h2. 
     + cbn. 
@@ -168,22 +165,18 @@ Proof.
 Qed.
 
 
-Lemma merge_leaf_r :
-  forall h : LHeap,
+Lemma merge_leaf_r (h : LHeap):
     merge (h, Leaf) = h.
 Proof.
-  intros h.
   unfold merge.
   destruct h.
    + simpl. reflexivity.
    + simpl. reflexivity.
 Qed.
 
-Lemma merge_leaf_l :
-  forall h : LHeap,
+Lemma merge_leaf_l (h : LHeap) :
     merge (Leaf, h) = h.
 Proof.
-  intros h.
   unfold merge.
   destruct h.
    + simpl. reflexivity.
@@ -192,22 +185,20 @@ Qed.
 
 
 
-Lemma size_make_node :
-  forall x l r,
+Lemma size_make_node (x : nat) (l r : LHeap):
     size (make_node x l r) = 1 + size l + size r.
 Proof.
-  intros. unfold make_node.
+  unfold make_node.
   destruct (Nat.leb (rank l) (rank r)).
    + simpl. lia.
    + simpl. lia.
 Qed.
 
 
-Lemma size_merge :
-  forall h1 h2,
+Lemma size_merge (h1 h2 : LHeap):
     size (merge (h1, h2)) = size h1 + size h2.
 Proof.
-  intros. remember (h1, h2) as p. revert h1 h2 Heqp.
+  remember (h1, h2) as p. revert h1 h2 Heqp.
   functional induction merge p; inversion 1.
   - destruct h2; simpl; reflexivity.
   - destruct h1; simpl. cbn. lia. lia.
@@ -222,12 +213,11 @@ Proof.
 Qed.
 
 
-Lemma Satisfies_leftist_make_node :
-  forall x l r,
+Lemma Satisfies_leftist_make_node (x : nat) (l r : LHeap):
     Satisfies_leftist l -> Satisfies_leftist r ->
     Satisfies_leftist (make_node x l r).
 Proof.
-  intros x l r Hl Hr.
+  intros Hl Hr.
   unfold make_node.
   destruct (Nat.leb (rank l) (rank r)) eqn:Hleb.
   - apply Nat.leb_le in Hleb.
@@ -237,11 +227,10 @@ Proof.
 Qed.
 
 
-Lemma Satisfies_leftist_merge :
-  forall h1 h2,
+Lemma Satisfies_leftist_merge (h1 h2 : LHeap):
     Satisfies_leftist h1 -> Satisfies_leftist h2 -> Satisfies_leftist (merge (h1, h2)).
 Proof.
-  intros h1 h2 H1 H2.
+  intros H1 H2.
   remember (h1, h2) as p. revert h1 h2 Heqp H1 H2.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
   - exact H2.
@@ -252,22 +241,20 @@ Proof.
     apply Satisfies_leftist_make_node; [assumption | now apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2)].
 Qed.
 
-Lemma All_make_node :
-  forall P x l r,
+Lemma All_make_node (P : nat -> Prop) (x : nat) (l r : LHeap):
     P x -> All P l -> All P r -> All P (make_node x l r).
 Proof.
-  intros P x l r Hx Hl Hr.
+  intros Hx Hl Hr.
   unfold make_node.
   destruct (Nat.leb (rank l) (rank r)); simpl; repeat split; assumption.
 Qed.
 
 
 
-Lemma merge_All (P : nat -> Prop) :
-  forall h1 h2,
+Lemma merge_All (P : nat -> Prop) (h1 h2 : LHeap):
     All P h1 -> All P h2 -> All P (merge (h1, h2)).
 Proof.
-  intros h1 h2 H1 H2.
+  intros H1 H2.
   remember (h1, h2) as p eqn:Hp.
   revert h1 h2 H1 H2 Hp.
   functional induction (merge p) using merge_ind; intros; inversion Hp; subst; clear Hp.
@@ -282,25 +269,24 @@ Proof.
     apply IHl with (h1 := Node _x x1 l1 r1) (h2 := r2); [exact H1 | exact Hr2 | reflexivity].
 Qed.
 
-Lemma heap_order_make_node :
-  forall x l r,
+Lemma heap_order_make_node (x : nat) (l r : LHeap):
     All (fun y => x <= y) l ->
     All (fun y => x <= y) r ->
     heap_order l ->
     heap_order r ->
     heap_order (make_node x l r).
 Proof.
-  intros x l r Hl Hr Hl_ord Hr_ord.
+  intros Hl Hr Hl_ord Hr_ord.
   unfold make_node.
   destruct (Nat.leb (rank l) (rank r)); simpl; repeat split; assumption.
 Qed.
 
-Lemma weaken_All (P Q : nat -> Prop) :
-  forall h : LHeap,
+
+Lemma weaken_All (P Q : nat -> Prop) (h : LHeap):
     (forall x, P x -> Q x) ->
     All P h -> All Q h.
 Proof.
-  intros h HPQ.
+  intros HPQ.
   induction h as [| r x l IHl r' IHr]; simpl; intros H.
   - exact I.
   - destruct H as [Hx [Hl Hr]].
@@ -310,20 +296,19 @@ Proof.
     + apply IHr, Hr.
 Qed.
 
-Lemma All_Node :
-  forall (P : nat -> Prop) r x l r',
-    P x -> All P l -> All P r' -> All P (Node r x l r').
+
+Lemma All_Node (P : nat -> Prop) (x v : nat) (l r' : LHeap):
+    P x -> All P l -> All P r' -> All P (Node v x l r').
 Proof.
-  intros P r x l r' Hx Hl Hr.
+  intros Hx Hl Hr.
   simpl.
   repeat split; assumption.
 Qed.
 
-Lemma merge_preserves_heap_order :
-  forall h1 h2,
+Lemma merge_preserves_heap_order (h1 h2 : LHeap):
     heap_order h1 -> heap_order h2 -> heap_order (merge (h1, h2)).
 Proof.
-  intros h1 h2 Hh1 Hh2.
+  intros Hh1 Hh2.
   remember (h1, h2) as p.
   revert h1 h2 Hh1 Hh2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
@@ -358,7 +343,7 @@ Proof.
         -- apply IHl with (h1 := r1) (h2 := Node _x0 x2 l2 r2); auto.
 
 
-  - simpl. (* x2 < x1 *)
+  - simpl.
     destruct Hh2 as [Hall2_l [Hall2_r [Hh2_l Hh2_r]]].
     repeat split.
     + apply heap_order_make_node.
@@ -388,11 +373,9 @@ Qed.
 
 
 
-Lemma Elem_make_node :
-  forall x v l r,
+Lemma Elem_make_node (x v : nat) (l r : LHeap):
     Elem x (make_node v l r) <-> x = v \/ Elem x l \/ Elem x r.
 Proof.
-  intros x v l r.
   unfold make_node.
   destruct (Nat.leb (rank l) (rank r)) eqn:Hleb.
   - split.
@@ -412,8 +395,7 @@ Qed.
 
 
 
-Lemma Elem_Node :
-  forall (n : nat) (x v : nat) (l r : LHeap),
+Lemma Elem_Node (n : nat) (x v : nat) (l r : LHeap):
     Elem x (Node n v l r) <-> x = v \/ Elem x l \/ Elem x r.
 Proof.
   split.
@@ -426,11 +408,9 @@ Qed.
 
 
 
-Lemma Elem_merge :
-  forall x h1 h2,
+Lemma Elem_merge (x : nat) (h1 h2 : LHeap):
     Elem x (merge (h1, h2)) <-> Elem x h1 \/ Elem x h2.
 Proof.
-  intros x h1 h2.
   remember (h1, h2) as p. revert h1 h2 Heqp.
   functional induction (merge p) using merge_ind; intros; inversion Heqp; subst; clear Heqp.
   - simpl. split; intro H; [right | destruct H; [inversion H |]]; assumption.
@@ -452,12 +432,11 @@ Module InsertLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
-Lemma insert_preserves_heap_order :
-  forall x h,
+Lemma insert_preserves_heap_order (x : nat) (h : LHeap):
     heap_order h ->
     heap_order (insert x h).
 Proof.
-  intros x h Hh.
+  intros Hh.
   unfold insert.
   apply merge_preserves_heap_order.
     simpl. repeat split; constructor.
@@ -465,37 +444,35 @@ Proof.
 Qed.
 
 
-Lemma Satisfies_leftist_singleton :
-  forall x : nat,
+Lemma Satisfies_leftist_singleton (x : nat) :
     Satisfies_leftist (singleton x).
 Proof.
   intros. unfold singleton.
   apply Satisfies_leftist_Node; try constructor.
 Qed.
 
-Lemma Satisfies_leftist_insert :
-  forall x t,
-    Satisfies_leftist t -> Satisfies_leftist (insert x t).
+
+Lemma Satisfies_leftist_insert (x : nat) (h : LHeap):
+    Satisfies_leftist h -> Satisfies_leftist (insert x h).
 Proof.
-  intros. unfold insert.
+  unfold insert.
   apply Satisfies_leftist_merge; auto.
   apply Satisfies_leftist_singleton.
 Qed.
 
-Lemma Elem_singleton :
-  forall (x y : nat),
+
+Lemma Elem_singleton (x y : nat):
     Elem x (singleton y) <-> x = y.
 Proof.
   split.
-    inversion 1; inversion H1. reflexivity.
-    inversion 1. constructor.
+  inversion 1; inversion H1. reflexivity.
+  inversion 1. constructor.
 Qed.
 
-Lemma Elem_insert :
-  forall x y h,
+
+Lemma Elem_insert (x y : nat) (h : LHeap):
     Elem x (insert y h) <-> x = y \/ Elem x h.
 Proof.
-  intros x y h.
   unfold insert.
   rewrite Elem_merge.
   split; intro H.
@@ -503,11 +480,11 @@ Proof.
   - destruct H as [-> | H]; [left | right]. constructor; assumption. apply H.
 Qed.
 
-Lemma size_insert :
-  forall x t,
-    size (insert x t) = 1 + size t.
+
+Lemma size_insert (x : nat) (h : LHeap):
+    size (insert x h) = 1 + size h.
 Proof.
-  intros. unfold insert.
+  unfold insert.
   rewrite size_merge.
   simpl. reflexivity.
 Qed.
@@ -519,12 +496,11 @@ Module DeleteLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
-Lemma deleteMin_preserves_heap_order :
-  forall h,
+Lemma deleteMin_preserves_heap_order (h : LHeap):
     heap_order h ->
     heap_order (deleteMin h).
 Proof.
-  intros h Hh.
+  intros Hh.
   destruct h as [| r x l r'].
   - simpl. constructor.
   - simpl.
@@ -533,11 +509,10 @@ Proof.
 Qed.
 
 
-Lemma Satisfies_leftist_deleteMin :
-  forall h,
+Lemma Satisfies_leftist_deleteMin (h : LHeap):
     Satisfies_leftist h -> Satisfies_leftist (deleteMin h).
 Proof.
-  intros h H.
+  intros H.
   unfold deleteMin.
   destruct h as [| r x l r'].
   - constructor. 
@@ -546,30 +521,26 @@ Proof.
 Qed.
 
 
-Lemma Elem_deleteMin :
-  forall x h,
+Lemma Elem_deleteMin (x : nat) (h : LHeap):
     Elem x (deleteMin h) <->
     match h with
     | Leaf => False
     | Node _ _ l r => Elem x l \/ Elem x r
     end.
 Proof.
-  intros x h.
   destruct h as [| rk val l r'].
   - simpl. split; intro H; inversion H.
   - simpl. rewrite Elem_merge. reflexivity.
 Qed.
 
 
-Lemma size_deleteMin :
-  forall h,
+Lemma size_deleteMin (h : LHeap) :
     size (deleteMin h) =
     match h with
     | Leaf => 0
     | Node _ _ l r => size l + size r
     end.
 Proof.
-  intros h.
   destruct h as [| rk val l r'].
   - simpl. reflexivity.
   - simpl. rewrite size_merge. reflexivity.
@@ -582,13 +553,12 @@ Module MinLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
-Lemma extractMin_preserves_heap_order :
-  forall h x h',
+Lemma extractMin_preserves_heap_order (x : nat) (h h' : LHeap):
     heap_order h ->
     extractMin h = Some (x, h') ->
     heap_order h'.
 Proof.
-  intros h x h' Hh Hext.
+  intros Hh Hext.
   destruct h as [| r x0 l r0].
   - simpl in Hext. discriminate.
   - simpl in Hext. inversion Hext. subst h'.
@@ -597,36 +567,34 @@ Proof.
 Qed.
 
 
-Lemma Satisfies_leftist_extractMin :
-  forall (m : nat) (t t' : LHeap),
-    Satisfies_leftist t -> extractMin t = Some (m, t') ->
-    Satisfies_leftist t'.
+Lemma Satisfies_leftist_extractMin (x : nat) (h h' : LHeap):
+    Satisfies_leftist h -> extractMin h = Some (x, h') ->
+    Satisfies_leftist h'.
 Proof.
-  intros m t t' Hbias Hext.
-  destruct t as [| r x l r'].
+  intros Hbias Hext.
+  destruct h as [| r y l r'].
   - simpl in Hext. discriminate.
   - simpl in Hext. inversion Hext; subst.
     inversion Hbias as [| r0 x0 l0 r0' Hr Hbl Hbr]; subst.
     apply Satisfies_leftist_merge; assumption.
 Qed.
 
-Lemma Elem_extractMin :
-  forall (m : nat) (t t' : LHeap),
-    extractMin t = Some (m, t') ->
-    Elem m t.
+Lemma Elem_extractMin (x : nat) (h h' : LHeap):
+    extractMin h = Some (x, h') ->
+    Elem x h.
 Proof.
-  intros m t t' Hext.
-  destruct t as [| r x l r']; simpl in Hext.
+  intros Hext.
+  destruct h as [| r y l r']; simpl in Hext.
   - discriminate.
   - inversion Hext; subst. constructor.
 Qed.
 
-Lemma size_extractMin :
-  forall (m : nat) (t t' : LHeap),
-    extractMin t = Some (m, t') -> size t = S (size t').
+
+Lemma size_extractMin (x : nat) (h h' : LHeap):
+    extractMin h = Some (x, h') -> size h = S (size h').
 Proof.
-  intros m t t' Hext.
-  destruct t as [| r x l r']; simpl in Hext.
+  intros Hext.
+  destruct h as [| r y l r']; simpl in Hext.
   - discriminate.
   - inversion Hext; subst.
     simpl. rewrite size_merge. reflexivity.
@@ -639,11 +607,10 @@ Module FindMinLemmas.
 Import LeftistHeapNat.
 Import MergeLemmas.
 
-Lemma findMin_correct :
-  forall (v : nat) (n : nat) (l r : LHeap),
+Lemma findMin_correct (v : nat) (n : nat) (l r : LHeap):
     findMin (Node n v l r) = Some v.
 Proof.
-  intros. simpl. reflexivity.
+  simpl. reflexivity.
 Qed.
 
 Definition min_opt (o1 o2 : option nat) : option nat :=
@@ -653,11 +620,9 @@ Definition min_opt (o1 o2 : option nat) : option nat :=
   | Some x, Some y => Some (Nat.min x y)
   end.
 
-Lemma findMin_make_node :
-  forall x l r,
+Lemma findMin_make_node (x : nat) (l r : LHeap):
     findMin (make_node x l r) = Some x.
 Proof.
-  intros x l r.
   unfold findMin, make_node.
   destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
 Qed.
@@ -752,11 +717,9 @@ Fixpoint to_list (h : LHeap) : list nat :=
   | Node _ x l r => x :: (to_list l ++ to_list r)
   end.
 
-Lemma cons_app_comm :
-  forall (x : nat) (l1 l2 : list nat),
+Lemma cons_app_comm (x : nat) (l1 l2 : list nat):
     Permutation (x :: l1 ++ l2) (l1 ++ x :: l2).
 Proof.
-  intros x l1 l2.
   induction l1 as [| y l1' IH].
   - simpl. reflexivity.
   - simpl.
@@ -765,7 +728,7 @@ Proof.
     + apply Permutation_cons. reflexivity. apply IH.
 Qed.
 
-Lemma to_list_make_node_perm x l r :
+Lemma to_list_make_node_perm (x : nat) (l r : LHeap) :
   Permutation
     (to_list (make_node x l r))
     (to_list l ++ x :: to_list r).
@@ -777,11 +740,9 @@ Proof.
 Qed.
 
 
-Lemma to_list_merge :
-  forall h1 h2,
+Lemma to_list_merge (h1 h2 : LHeap):
     Permutation (to_list (merge (h1,h2))) (to_list h1 ++ to_list h2).
 Proof.
-  intros h1 h2.
   remember (h1, h2) as p eqn:Hp.
   revert h1 h2 Hp.
   functional induction (merge p) using merge_ind; intros; inversion Hp; subst; clear Hp.
