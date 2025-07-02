@@ -54,10 +54,10 @@ Proof.
 Defined.
 
 Definition singleton (x : nat) : LHeap :=
-  Node 1 x Leaf Leaf.
+  Node 0 x Leaf Leaf.
 
 Definition insert (x : nat) (h : LHeap) : LHeap :=
-  merge ((Node 1 x Leaf Leaf), h).
+  merge ((Node 0 x Leaf Leaf), h).
 
 Definition deleteMin (h : LHeap) : LHeap :=
   match h with
