@@ -818,8 +818,8 @@
    and the property holds recursively for both subtrees *)
   Fixpoint strict_heap_order (h : SHeap) : Prop :=
     match h with
-    | E => True
-    | N x l r =>
+    | Leaf => True
+    | Node x l r =>
         All (fun y => x < y) l /\
         All (fun y => x < y) r /\
         strict_heap_order l /\
