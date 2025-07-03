@@ -77,7 +77,7 @@
     end.
 
   (* Extracts the minimum element and the resulting heap *)
-  Definition extractMin (h : SHeap) : option (nat * SHeap) :=
+  Definition extract_min (h : SHeap) : option (nat * SHeap) :=
     match h with
     | Leaf       => None
     | Node x l r => Some (x, merge (l, r))
@@ -488,9 +488,9 @@
   (* ---------- Size-related properties ---------- *)
 
 
-  (* If extractMin returns Some (x, h'), then the size of the original heap h is one more than the size of h' *)
-  Lemma size_extractMin (x : nat) (h h' : SHeap):
-      extractMin h = Some (x, h') -> size h = S (size h').
+  (* If extract_min returns Some (x, h'), then the size of the original heap h is one more than the size of h' *)
+  Lemma size_extract_min (x : nat) (h h' : SHeap):
+      extract_min h = Some (x, h') -> size h = S (size h').
   Proof.
     intros Hext.
     destruct h as [| y l r']; simpl in Hext.
@@ -501,10 +501,10 @@
 
   (* ---------- Heap-Order Invariant preservation ---------- *)
 
-  (* If extractMin returns Some (x, h'), then h' satisfies heap_order provided h did *)
+  (* If extract_min returns Some (x, h'), then h' satisfies heap_order provided h did *)
   Lemma extract_min_preserves_heap_order (x : nat) (h h' : SHeap):
       heap_order h ->
-      extractMin h = Some (x, h') ->
+      extract_min h = Some (x, h') ->
       heap_order h'.
   Proof.
     intros Hh Hext.
@@ -517,9 +517,9 @@
 
   (* ---------- Membership lemmas ---------- *)
 
-  (* If extractMin returns Some (x, h'), then x belonged to the original heap h *)
-  Lemma Elem_extractMin (x : nat) (h h' : SHeap):
-      extractMin h = Some (x, h') ->
+  (* If extract_min returns Some (x, h'), then x belonged to the original heap h *)
+  Lemma Elem_extract_min (x : nat) (h h' : SHeap):
+      extract_min h = Some (x, h') ->
       Elem x h.
   Proof.
     intros Hext.
@@ -527,13 +527,13 @@
     - discriminate.
     - destruct l, r; simpl in Hext;
       try (inversion Hext; subst; constructor);
-      destruct (extractMin h) as [[m1 h1]|] eqn:He1;
-      destruct (extractMin h0) as [[m2 h2]|] eqn:He2;
+      destruct (extract_min h) as [[m1 h1]|] eqn:He1;
+      destruct (extract_min h0) as [[m2 h2]|] eqn:He2;
       destruct (m1 <? m2) eqn:Hcmp;
       inversion Hext; subst;
       try constructor 2; try constructor 3;
-      apply Elem_extractMin with (t' := h1) in He1; assumption ||
-      apply Elem_extractMin with (t' := h2) in He2; assumption.
+      apply Elem_extract_min with (t' := h1) in He1; assumption ||
+      apply Elem_extract_min with (t' := h2) in He2; assumption.
   Qed.
 
 
@@ -767,9 +767,9 @@
 
   (* ---------- ExtractMin permutation properties ---------- *)
 
-  (* If extractMin returns Some (x, h'), the original heap's elements are a permutation of x followed by the elements of h' *)
+  (* If extract_min returns Some (x, h'), the original heap's elements are a permutation of x followed by the elements of h' *)
   Lemma to_list_extract_min (x : nat) (h h' : SHeap) :
-      extractMin h = Some (x, h') ->
+      extract_min h = Some (x, h') ->
       Permutation (to_list h) (x :: to_list h').
   Proof.
     intros Hext.
