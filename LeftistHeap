@@ -81,21 +81,21 @@
     merge ((Node 0 x Leaf Leaf), h).
 
   (* Deletes the minimum element (the root) by merging its subtrees *)
-  Definition deleteMin (h : LHeap) : LHeap :=
+  Definition delete_min (h : LHeap) : LHeap :=
     match h with
     | Leaf => Leaf
     | Node _ _ l r => merge (l, r)
     end.
 
   (* Finds the minimum element (at the root) if it exists *)
-  Definition findMin (h : LHeap) : option nat :=
+  Definition find_min (h : LHeap) : option nat :=
     match h with
     | Leaf => None
     | Node _ x _ _ => Some x
     end.
 
   (* Extracts the minimum element and the resulting heap *)
-  Definition extractMin (h : LHeap) : option (nat * LHeap) :=
+  Definition extract_min (h : LHeap) : option (nat * LHeap) :=
     match h with
     | Leaf => None
     | Node _ x l r => Some (x, merge (l, r))
@@ -542,7 +542,7 @@
   (* Deleting the minimum element from a non-empty heap reduces its size by 1 *)
   Lemma size_delete_min (h : LHeap) :
     h <> Leaf ->
-    size (deleteMin h) = size h - 1.
+    size (delete_min h) = size h - 1.
   Proof.
     intros Hh.
     destruct h as [| r0 x l r].
@@ -556,11 +556,11 @@
 
   (* Deleting the minimum element produces a heap that satisfies the leftist property 
    if the original heap did *)
-  Lemma Satisfies_leftist_deleteMin (h : LHeap):
-      Satisfies_leftist h -> Satisfies_leftist (deleteMin h).
+  Lemma Satisfies_leftist_delete_min (h : LHeap):
+      Satisfies_leftist h -> Satisfies_leftist (delete_min h).
   Proof.
     intros H.
-    unfold deleteMin.
+    unfold delete_min.
     destruct h as [| r x l r'].
     - constructor. 
     - inversion H; subst.
@@ -570,9 +570,9 @@
   (* ---------- Heap-Order Invariant preservation ---------- *)
 
   (* Deleting the minimum element preserves the heap_order property if it held before *)
-  Lemma deleteMin_preserves_heap_order (h : LHeap):
+  Lemma delete_min_preserves_heap_order (h : LHeap):
       heap_order h ->
-      heap_order (deleteMin h).
+      heap_order (delete_min h).
   Proof.
     intros Hh.
     destruct h as [| r x l r'].
@@ -584,10 +584,10 @@
 
   (* ---------- Membership lemmas ---------- *)
 
-  (* An element x belongs to deleteMin h if and only if
+  (* An element x belongs to delete_min h if and only if
    x belonged to one of the subtrees of h (if h was non-empty) *)
-  Lemma Elem_deleteMin (x : nat) (h : LHeap):
-      Elem x (deleteMin h) <->
+  Lemma Elem_delete_min (x : nat) (h : LHeap):
+      Elem x (delete_min h) <->
       match h with
       | Leaf => False
       | Node _ _ l r => Elem x l \/ Elem x r
@@ -607,9 +607,9 @@
 
   (* ---------- Size-related properties ---------- *)
 
-  (* If extractMin returns Some (x, h'), then the size of the original heap h is one more than the size of h' *)
-  Lemma size_extractMin (x : nat) (h h' : LHeap):
-      extractMin h = Some (x, h') -> size h = S (size h').
+  (* If extract_min returns Some (x, h'), then the size of the original heap h is one more than the size of h' *)
+  Lemma size_extract_min (x : nat) (h h' : LHeap):
+      extract_min h = Some (x, h') -> size h = S (size h').
   Proof.
     intros Hext.
     destruct h as [| r y l r']; simpl in Hext.
@@ -620,9 +620,9 @@
 
   (* ---------- Leftist Invariant preservation ---------- *)
 
-  (* If extractMin returns Some (x, h'), then h' satisfies the leftist property provided h did *)
-  Lemma Satisfies_leftist_extractMin (x : nat) (h h' : LHeap):
-      Satisfies_leftist h -> extractMin h = Some (x, h') ->
+  (* If extract_min returns Some (x, h'), then h' satisfies the leftist property provided h did *)
+  Lemma Satisfies_leftist_extract_min (x : nat) (h h' : LHeap):
+      Satisfies_leftist h -> extract_min h = Some (x, h') ->
       Satisfies_leftist h'.
   Proof.
     intros Hbias Hext.
@@ -635,10 +635,10 @@
 
   (* ---------- Heap-Order Invariant preservation ---------- *)
 
-  (* If extractMin returns Some (x, h'), then h' satisfies heap_order provided h did *)
-  Lemma extractMin_preserves_heap_order (x : nat) (h h' : LHeap):
+  (* If extract_min returns Some (x, h'), then h' satisfies heap_order provided h did *)
+  Lemma extract_min_preserves_heap_order (x : nat) (h h' : LHeap):
       heap_order h ->
-      extractMin h = Some (x, h') ->
+      extract_min h = Some (x, h') ->
       heap_order h'.
   Proof.
     intros Hh Hext.
@@ -651,9 +651,9 @@
 
   (* ---------- Membership lemmas ---------- *)
 
-  (* If extractMin returns Some (x, h'), then x was the minimum element at the root of h *)
-  Lemma Elem_extractMin (x : nat) (h h' : LHeap):
-      extractMin h = Some (x, h') ->
+  (* If extract_min returns Some (x, h'), then x was the minimum element at the root of h *)
+  Lemma Elem_extract_min (x : nat) (h h' : LHeap):
+      extract_min h = Some (x, h') ->
       Elem x h.
   Proof.
     intros Hext.
@@ -681,34 +681,34 @@
 (* ---------- Merge properties ---------- *)
 
   (* The minimum of a Node is its root value *)
-  Lemma findMin_correct (v : nat) (n : nat) (l r : LHeap):
-      findMin (Node n v l r) = Some v.
+  Lemma find_min_correct (v : nat) (n : nat) (l r : LHeap):
+      find_min (Node n v l r) = Some v.
   Proof.
     simpl. reflexivity.
   Qed.
 
   (* The minimum of a make_node is its root value *)
-  Lemma findMin_make_node (x : nat) (l r : LHeap):
-      findMin (make_node x l r) = Some x.
+  Lemma find_min_make_node (x : nat) (l r : LHeap):
+      find_min (make_node x l r) = Some x.
   Proof.
-    unfold findMin, make_node.
+    unfold find_min, make_node.
     destruct (Nat.leb (rank l) (rank r)); simpl; reflexivity.
   Qed.
 
   (* The minimum of merging two heaps is the minimum of the two heap roots *)
-  Lemma findMin_merge (h1 h2 : LHeap) :
-      findMin (merge (h1, h2)) = min_opt (findMin h1) (findMin h2).
+  Lemma find_min_merge (h1 h2 : LHeap) :
+      find_min (merge (h1, h2)) = min_opt (find_min h1) (find_min h2).
   Proof.
     remember (h1, h2) as p eqn:Hp.
     functional induction (merge p) using merge_ind; inversion Hp; subst; simpl.
     - reflexivity.
-    - destruct (findMin h1); simpl; reflexivity.
+    - destruct (find_min h1); simpl; reflexivity.
     - unfold min_opt.
-      simpl. rewrite findMin_make_node.
+      simpl. rewrite find_min_make_node.
       apply Nat.leb_le in e0.
       f_equal. lia.
     - unfold min_opt.
-      rewrite findMin_make_node.
+      rewrite find_min_make_node.
       f_equal. 
       assert (H : Nat.min x1 x2 = x2).
       {
@@ -722,19 +722,19 @@
   (* ---------- Insert properties ---------- *)
 
   (* The minimum of inserting x into h equals the minimum of x and the minimum of h *)
-  Lemma findMin_insert (x : nat) (h : LHeap):
-      findMin (insert x h) = min_opt (Some x) (findMin h).
+  Lemma find_min_insert (x : nat) (h : LHeap):
+      find_min (insert x h) = min_opt (Some x) (find_min h).
   Proof.
     unfold insert.
-    rewrite findMin_merge.
+    rewrite find_min_merge.
     simpl. reflexivity.
   Qed.
 
   (* ---------- DeleteMin properties ---------- *)
 
   (* A heap has no minimum if and only if it is Leaf *)
-  Lemma findMin_empty_iff (h : LHeap) :
-      findMin h = None <-> h = Leaf.
+  Lemma find_min_empty_iff (h : LHeap) :
+      find_min h = None <-> h = Leaf.
   Proof.
     split.
     - destruct h; simpl; auto; discriminate.
@@ -743,7 +743,7 @@
 
   (* If a heap has no minimum, deleting the minimum yields Leaf *)
   Lemma find_min_delete_empty  (h : LHeap):
-      findMin h = None -> deleteMin h = Leaf.
+      find_min h = None -> delete_min h = Leaf.
   Proof.
     intros H.
     destruct h.
@@ -755,14 +755,14 @@
    then deleting the minimum yields a heap whose minimum is at least x *)
   Lemma find_min_delete_next (h : LHeap) (x : nat) :
     heap_order h ->
-    findMin h = Some x ->
-    deleteMin h <> Leaf ->
-    exists m', findMin (deleteMin h) = Some m' /\ x <= m'.
+    find_min h = Some x ->
+    delete_min h <> Leaf ->
+    exists m', find_min (delete_min h) = Some m' /\ x <= m'.
   Proof.
     intros Hord Hmin Hne.
     destruct h as [| r x' l r']; simpl in *; try contradiction.
     inversion Hmin; subst; clear Hmin.
-    simpl. unfold deleteMin. simpl.
+    simpl. unfold delete_min. simpl.
     remember (merge (l, r')) as h'.
     destruct h' as [| r0 m' l' r''].
     - exfalso. apply Hne. reflexivity.
@@ -876,9 +876,9 @@
   (* ---------- DeleteMin permutation properties ---------- *)
 
   (* Deleting the minimum element produces a heap whose elements are a permutation of the tail of the flattened list *)
-  Lemma to_list_deleteMin (x : nat) (h : LHeap) :
-      findMin h = Some x ->
-      Permutation (to_list (deleteMin h)) (tl (to_list h)).
+  Lemma to_list_delete_min (x : nat) (h : LHeap) :
+      find_min h = Some x ->
+      Permutation (to_list (delete_min h)) (tl (to_list h)).
   Proof.
     intros Hmin.
     destruct h as [| r v l r'].
@@ -890,9 +890,9 @@
 
   (* ---------- ExtractMin permutation properties ---------- *)
 
-  (* If extractMin returns Some (x, h'), the original heap's elements are a permutation of x followed by h' elements *)
-  Lemma to_list_extractMin (x : nat) (h h' : LHeap) :
-      extractMin h = Some (x, h') ->
+  (* If extract_min returns Some (x, h'), the original heap's elements are a permutation of x followed by h' elements *)
+  Lemma to_list_extract_min (x : nat) (h h' : LHeap) :
+      extract_min h = Some (x, h') ->
       Permutation (to_list h) (x :: to_list h').
   Proof.
     intros Hext.
