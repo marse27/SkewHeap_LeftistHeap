@@ -781,7 +781,7 @@
       reflexivity.
   Qed.
 
-  (* ---------- Extra permutation properties ---------- *)
+  (* ---------- Extra permutation properties for delete_min ---------- *)
 
   (* From [All P h] we can conclude P holds for every y in [to_list h] *)
   Lemma All_to_list (P : nat -> Prop) (h : SHeap):
@@ -853,8 +853,14 @@
   apply Permutation_refl.
   Qed.
 
-(*---------------------------------------*)
+  End SkewHeapNat_Permutation.
 
+
+  Module Find_minExtraProof.
+  Import SkewHeapNat.
+  Import SkewHeapNat_Permutation.
+
+  (* Proves that the root of a heap is less than or equal to all elements in the heap *)
   Lemma heap_order_root_min (h : SHeap) (x : nat) :
     heap_order h ->
     find_min h = Some x ->
@@ -877,7 +883,7 @@
         -- eapply All_to_list in Hvr; [|exact HinR]. lia.
   Qed.
 
-
+  (* Recursively computes the minimum of a list *)
   Fixpoint list_min (l : list nat) : option nat :=
     match l with
     | [] => None
@@ -888,6 +894,7 @@
         end
     end.
 
+  (* Ensures that list_min always returns an element from the list *)
   Lemma list_min_in (l : list nat) (m : nat) :
     list_min l = Some m -> In m l.
   Proof.
@@ -901,6 +908,7 @@
       -- intros H. injection H as <-. apply in_eq.
   Qed.
 
+  (* Proves that find_min returns the same value as list_min for heaps that satisfy heap_order *)
   Lemma find_min_correct_list (h : SHeap) (a : nat) :
     heap_order h ->
     find_min h = Some a ->
@@ -927,4 +935,8 @@
       + reflexivity.
   Qed.
 
-  End SkewHeapNat_Permutation.
+  End Find_minExtraProof.
+
+
+
+
