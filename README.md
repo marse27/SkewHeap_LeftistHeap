@@ -19,9 +19,9 @@ Both modules include definitions, operations, and associated lemmas to verify co
 - Operations:
   - `merge`
   - `insert`
-  - `deleteMin`
-  - `findMin`
-  - `extractMin`
+  - `delete_min`
+  - `find_min`
+  - `extract_min`
 - Properties:
   - Heap order (`heap_order`)
   - Leftist structure (`Satisfies_leftist`)
@@ -42,25 +42,24 @@ Both modules include definitions, operations, and associated lemmas to verify co
   - `insert`
   - `delete_min`
   - `find_min`
-  - `extractMin`
+  - `extract_min`
 - Properties:
   - Heap order (`heap_order`)
-  - Strict heap order (`strict_heap_order`)
   - Element membership (`Elem`)
   - Conversion to list (`to_list`)
 - Proofs of:
   - Preservation of heap order after operations
-  - Correctness of merge, insert, delete_min, find_min, extractMin
+  - Correctness of merge, insert, delete_min, find_min, extract_min
   - Permutation equivalence of `to_list` after operations
 
 ---
 
 ## Files
 
-- `LeftistHeapNat.v`  
+- `LeftistHeap.v`  
   Contains the Leftist Heap implementation and proofs.
   
-- `SkewHeapNat.v`  
+- `SkewHeap.v`  
   Contains the Skew Heap implementation and proofs.
 
 ---
