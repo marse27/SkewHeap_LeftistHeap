@@ -904,9 +904,9 @@
       reflexivity.
   Qed.
 
+  (* ---------- Extra permutation properties for delete_min ---------- *)
 
-
-(*------------------------------------------------------*)
+  (* From [All P h] we can conclude P holds for every y in [to_list h] *)
   Lemma All_to_list (P : nat -> Prop) (h : LHeap) :
     All P h -> forall y, In y (to_list h) -> P y.
   Proof.
@@ -921,7 +921,67 @@
         * apply IHr; assumption.
   Qed.
 
+  (* Helper: if x is not in l, then removing x from l returns l unchanged *)
+  Lemma remove_not_in {A : Type} (eq_dec : forall u v : A, {u = v} + {u <> v}) :
+    forall x l,
+      (forall y, In y l -> y <> x) ->
+      remove eq_dec x l = l.
+  Proof.
+    induction l as [|a l IH]; simpl; auto.
+    intros Hnot.
+    destruct (eq_dec a x) as [Heq | Hneq].
+    - subst a. exfalso. apply (Hnot x). left. reflexivity. reflexivity.
+    - destruct (eq_dec x a) as [Heq' | Hneq'].
+      + symmetry in Heq'. contradiction.
+      + simpl. f_equal. apply IH. intros y Hy. apply Hnot. right. exact Hy.
+  Qed.
 
+  (* Defines the strict heap order property:
+   every node's value is strictly smaller than all values in its subtrees,
+   and the property holds recursively for both subtrees *)
+  Fixpoint strict_heap_order (h : LHeap) : Prop :=
+    match h with
+    | Leaf => True
+    | Node r' x l r =>
+        All (fun y => x < y) l /\
+        All (fun y => x < y) r /\
+        strict_heap_order l /\
+        strict_heap_order r
+    end.
+
+  (* Ensures that deleting the root removes exactly the first occurrence of the minimum *)
+  Lemma to_list_delete_min_extra (x : nat) (h : LHeap):
+    strict_heap_order h ->
+    find_min h = Some x ->
+    Permutation (to_list (delete_min h))
+                (remove Nat.eq_dec x (to_list h)).
+  Proof.
+    intros Hstr Hfind.
+    destruct h as [| l v r l1] eqn:HeqH; simpl in Hfind; try discriminate.
+    simpl in Hfind. inversion Hfind; subst x; clear Hfind.
+    simpl.
+    rewrite to_list_merge; simpl.
+    unfold strict_heap_order in Hstr; simpl in Hstr.
+    destruct Hstr as (Hall_l & Hall_r & Hstr_l & Hstr_r).
+    assert (Hno : forall y, In y (to_list r ++ to_list l1) -> y <> v).
+    {
+      intros y Hy.
+      apply in_app_or in Hy as [Hy_r | Hy_l].
+      - apply (All_to_list (fun z => v < z) r) in Hy_r; auto. lia.
+      - apply (All_to_list (fun z => v < z) l1) in Hy_l; auto. lia.
+    }
+    destruct (Nat.eq_dec v v) as [_|Hneq]; [|contradiction].
+    rewrite remove_not_in by exact Hno.
+    apply Permutation_refl.
+  Qed.
+
+  End PermutationLemmas.
+
+  Module Find_minExtraProof.
+  Import LeftistHeapNat.
+  Import PermutationLemmas.
+
+  (* Proves that the root of a heap is less than or equal to all elements in the heap *)
   Lemma heap_order_root_min (h : LHeap) (x : nat) :
     heap_order h ->
     find_min h = Some x ->
@@ -944,7 +1004,7 @@
         -- eapply All_to_list in Hvr; [|exact HinR]. lia.
   Qed.
 
-
+  (* Recursively computes the minimum of a list *)
   Fixpoint list_min (l : list nat) : option nat :=
     match l with
     | [] => None
@@ -955,6 +1015,7 @@
         end
     end.
 
+  (* Ensures that list_min always returns an element from the list *)
   Lemma list_min_in (l : list nat) (m : nat) :
     list_min l = Some m -> In m l.
   Proof.
@@ -968,7 +1029,8 @@
       -- intros H. injection H as <-. apply in_eq.
   Qed.
 
-  Lemma find_min_correct (h : LHeap) (a : nat) :
+  (* Proves that find_min returns the same value as list_min for heaps that satisfy heap_order *)
+  Lemma find_min_correct_list (h : LHeap) (a : nat) :
     heap_order h ->
     find_min h = Some a ->
     list_min (to_list h) = Some a.
@@ -994,12 +1056,6 @@
       + reflexivity.
   Qed.
 
-
-
-
-
-
-  End PermutationLemmas.
-
+  End Find_minExtraProof.
 
 
