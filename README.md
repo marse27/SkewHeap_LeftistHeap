@@ -25,6 +25,7 @@ Both modules include definitions, operations, and associated lemmas to verify co
 - Properties:
   - Heap order (`heap_order`)
   - Leftist structure (`Satisfies_leftist`)
+  - Size (`size_merge`)
   - Element membership (`Elem`)
   - Conversion to list (`to_list`)
 - Proofs of:
@@ -45,6 +46,7 @@ Both modules include definitions, operations, and associated lemmas to verify co
   - `extract_min`
 - Properties:
   - Heap order (`heap_order`)
+  - Size (`size_merge`)
   - Element membership (`Elem`)
   - Conversion to list (`to_list`)
 - Proofs of:
