@@ -757,7 +757,7 @@
       Permutation (to_list (delete_min h)) (tl (to_list h)).
   Proof.
     intros Hmin.
-    destruct h as [| r v l r'].
+    destruct h as [| v l r'].
     - simpl in Hmin. discriminate.
     - simpl in Hmin. inversion Hmin; subst.
       simpl. rewrite to_list_merge.
