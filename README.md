@@ -93,3 +93,8 @@ Clone the repository:
 ```
 
 Open LeftistHeap.v or SkewHeap.v in a Rocq enviroment and navigate through the proofs.
+
+## License
+
+This project is licensed under the BSD 2-Clause License. See the [LICENSE](./LICENSE) file for details.
+
