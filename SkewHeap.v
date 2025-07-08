@@ -853,4 +853,78 @@
   apply Permutation_refl.
   Qed.
 
+(*---------------------------------------*)
+
+  Lemma heap_order_root_min (h : SHeap) (x : nat) :
+    heap_order h ->
+    find_min h = Some x ->
+    forall y, In y (to_list h) -> x <= y.
+  Proof.
+    intros Horder Hfind y Hin.
+    unfold find_min in Hfind.
+    destruct h as [| v l r'].
+    - discriminate Hfind.
+    - simpl in Hfind. inversion Hfind; subst. 
+      simpl in Hin.
+      remember (to_list l ++ to_list r') as rest.
+      simpl in *.
+      destruct Horder as [Hvl [Hvr [Hl Hr]]].
+      simpl in Hin.
+      destruct Hin as [Hy | Hy]; subst.
+      + lia.
+      + apply in_app_or in Hy as [HinL | HinR].
+        -- eapply All_to_list in Hvl; [|exact HinL]. lia.
+        -- eapply All_to_list in Hvr; [|exact HinR]. lia.
+  Qed.
+
+
+  Fixpoint list_min (l : list nat) : option nat :=
+    match l with
+    | [] => None
+    | x :: xs =>
+        match list_min xs with
+        | None => Some x
+        | Some m => Some (Nat.min x m)
+        end
+    end.
+
+  Lemma list_min_in (l : list nat) (m : nat) :
+    list_min l = Some m -> In m l.
+  Proof.
+    induction l as [| x xs IH]; simpl.
+    - discriminate.
+    - destruct (list_min xs) eqn:E.
+      -- intros H. injection H as <-.
+        destruct (Nat.min_spec x n) as [[Hmin Hmax] | [Hmin Hmax]].
+        + rewrite (Nat.min_l x n) by lia. apply in_eq.
+        + right. apply IH. rewrite Hmax. reflexivity.
+      -- intros H. injection H as <-. apply in_eq.
+  Qed.
+
+  Lemma find_min_correct_list (h : SHeap) (a : nat) :
+    heap_order h ->
+    find_min h = Some a ->
+    list_min (to_list h) = Some a.
+  Proof.
+    intros Horder Hfind.
+    destruct h as [| v l r']; simpl in Hfind.
+    - discriminate Hfind.
+    - simpl in Hfind. inversion Hfind. subst a. clear Hfind.
+      simpl. remember (to_list l ++ to_list r') as tail.
+      destruct (list_min tail) eqn:Hrec.
+      + pose proof (heap_order_root_min _ Horder eq_refl) as Hmin.
+        assert (In n tail) as Hins.
+          {
+            subst tail; apply list_min_in; exact Hrec.
+          }
+        assert (v <= n) as Hv_le_n.
+          { 
+            apply Hmin.
+            right. inversion Heqtail; subst. exact Hins.
+          }
+        rewrite (Nat.min_l v n) by lia.
+        reflexivity.
+      + reflexivity.
+  Qed.
+
   End SkewHeapNat_Permutation.
