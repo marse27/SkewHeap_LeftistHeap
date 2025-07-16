@@ -6,9 +6,6 @@ The project contains two main modules:
 
 - `LeftistHeapNat`: An implementation of Leftist Heaps over `nat`.
 - `SkewHeapNat`: An implementation of Skew Heaps over `nat`.
-
-Both modules include definitions, operations, and associated lemmas to verify correctness properties such as heap order and element membership.
-
 ---
 
 ## Features
@@ -29,8 +26,8 @@ Both modules include definitions, operations, and associated lemmas to verify co
   - Element membership (`Elem`)
   - Conversion to list (`to_list`)
 - Proofs of:
-  - Preservation of heap order after operations
-  - Correctness of merge, insert, deleteMin, find_min, extractMin
+  - Preservation of heap-order and leftist property after operations
+  - Correctness of merge, insert, delete_min, find_min, extract_min
   - Permutation equivalence of `to_list` after operations
 
 ---
