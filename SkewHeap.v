@@ -855,6 +855,7 @@
 
   End SkewHeapNat_Permutation.
 
+  (*---------------------------- Correctness Proofs with Lists for find_min in Skew Heaps ----------------------------*)
 
   Module Find_minExtraProof.
   Import SkewHeapNat.
@@ -936,7 +937,3 @@
   Qed.
 
   End Find_minExtraProof.
-
-
-
-
