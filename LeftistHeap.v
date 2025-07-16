@@ -977,6 +977,8 @@
 
   End PermutationLemmas.
 
+  (*---------------------------- Correctness Proofs with Lists for find_min in Leftist Heaps ----------------------------*)
+
   Module Find_minExtraProof.
   Import LeftistHeapNat.
   Import PermutationLemmas.
@@ -1057,5 +1059,3 @@
   Qed.
 
   End Find_minExtraProof.
-
-
